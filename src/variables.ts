@@ -1,45 +1,25 @@
 import type ModuleInstance from './main.js'
 
-export type VariablesSchema = {
-	plan_title: string
-	series_title: string
-	service_type: string
-	plan_mode: string
-	current_item: string
-	next_item: string
-	slide_index: string
-	slide_count: string
-	countdown_label: string
-	countdown_seconds: string
-	mics_online: string
-	mics_total: string
-	lowest_battery_pct: string
-	lowest_battery_channel: string
-	last_caption_text: string
-	last_caption_speaker: string
-	last_synced: string
-}
-
 export function UpdateVariableDefinitions(self: ModuleInstance): void {
-	self.setVariableDefinitions({
-		plan_title: { name: 'Current plan title' },
-		series_title: { name: 'Current series title' },
-		service_type: { name: 'Service type' },
-		plan_mode: { name: 'Plan mode (auto/manual)' },
-		current_item: { name: 'ProPresenter current item' },
-		next_item: { name: 'ProPresenter next item' },
-		slide_index: { name: 'Slide index' },
-		slide_count: { name: 'Slide count' },
-		countdown_label: { name: 'PCO countdown label' },
-		countdown_seconds: { name: 'PCO countdown (mm:ss)' },
-		mics_online: { name: 'Mics online' },
-		mics_total: { name: 'Mics total' },
-		lowest_battery_pct: { name: 'Lowest mic battery %' },
-		lowest_battery_channel: { name: 'Lowest mic battery channel' },
-		last_caption_text: { name: 'Last caption text' },
-		last_caption_speaker: { name: 'Last caption speaker' },
-		last_synced: { name: 'Last synced (local time)' },
-	})
+	self.setVariableDefinitions([
+		{ variableId: 'plan_title', name: 'Current plan title' },
+		{ variableId: 'series_title', name: 'Current series title' },
+		{ variableId: 'service_type', name: 'Service type' },
+		{ variableId: 'plan_mode', name: 'Plan mode (auto/manual)' },
+		{ variableId: 'current_item', name: 'ProPresenter current item' },
+		{ variableId: 'next_item', name: 'ProPresenter next item' },
+		{ variableId: 'slide_index', name: 'Slide index' },
+		{ variableId: 'slide_count', name: 'Slide count' },
+		{ variableId: 'countdown_label', name: 'PCO countdown label' },
+		{ variableId: 'countdown_seconds', name: 'PCO countdown (mm:ss)' },
+		{ variableId: 'mics_online', name: 'Mics online' },
+		{ variableId: 'mics_total', name: 'Mics total' },
+		{ variableId: 'lowest_battery_pct', name: 'Lowest mic battery %' },
+		{ variableId: 'lowest_battery_channel', name: 'Lowest mic battery channel' },
+		{ variableId: 'last_caption_text', name: 'Last caption text' },
+		{ variableId: 'last_caption_speaker', name: 'Last caption speaker' },
+		{ variableId: 'last_synced', name: 'Last synced (local time)' },
+	])
 }
 
 function formatDuration(totalSec: number): string {

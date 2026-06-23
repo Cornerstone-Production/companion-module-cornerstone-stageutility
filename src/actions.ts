@@ -9,20 +9,6 @@ import {
 	viewChoices,
 } from './choices.js'
 
-export type ActionsSchema = {
-	live_next: { options: Record<string, never> }
-	live_previous: { options: Record<string, never> }
-	refresh_lineup: { options: Record<string, never> }
-	plan_next: { options: Record<string, never> }
-	set_plan: { options: { plan: string } }
-	set_service_type: { options: { serviceType: string } }
-	set_plan_mode: { options: { mode: string } }
-	route_view: { options: { output: string; view: string } }
-	refresh_displays: { options: { scope: string; output: string } }
-	apply_preset: { options: { preset: string } }
-	show_qr: { options: { mode: string } }
-}
-
 export function UpdateActions(self: ModuleInstance): void {
 	const run = (label: string, fn: () => Promise<unknown>) => async (): Promise<void> => {
 		try {

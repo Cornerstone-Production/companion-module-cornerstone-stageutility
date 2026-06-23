@@ -1,28 +1,28 @@
-import { InstanceBase, InstanceStatus, type SomeCompanionConfigField } from '@companion-module/base'
+import { InstanceBase, InstanceStatus, runEntrypoint, type SomeCompanionConfigField } from '@companion-module/base'
 import { ApiClient } from './api.js'
 import { baseUrl, GetConfigFields, type ModuleConfig } from './config.js'
 import { StateCache } from './state.js'
 import { SseClient, type SseEventName } from './sse.js'
-import { UpdateActions, type ActionsSchema } from './actions.js'
-import { UpdateFeedbacks, type FeedbacksSchema } from './feedbacks.js'
-import { SetVariableValues, UpdateVariableDefinitions, type VariablesSchema } from './variables.js'
+import { UpdateActions } from './actions.js'
+import { UpdateFeedbacks } from './feedbacks.js'
+import { SetVariableValues, UpdateVariableDefinitions } from './variables.js'
 import { UpdatePresets } from './presets.js'
 import { UpgradeScripts } from './upgrades.js'
 import type { PcoLiveDTO, ProPresenterStatusDTO, StageStateDTO, TranscriptLineDTO } from './types.js'
 
-export type ModuleSchema = {
-	config: ModuleConfig
-	secrets: undefined
-	actions: ActionsSchema
-	feedbacks: FeedbacksSchema
-	variables: VariablesSchema
-}
-
-export { UpgradeScripts }
-
 const RETRY_MS = 5000
 
-export default class ModuleInstance extends InstanceBase<ModuleSchema> {
+const ALL_FEEDBACKS = [
+	'countdown_overtime',
+	'mic_battery_low',
+	'mic_offline',
+	'propresenter_disconnected',
+	'plan_mode_manual',
+	'output_shows_view',
+	'captions_idle',
+]
+
+export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 	config!: ModuleConfig
 	api!: ApiClient
 	state = new StateCache()
@@ -243,6 +243,10 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		this.updateFeedbacks()
 	}
 
+	private checkAllFeedbacks(): void {
+		this.checkFeedbacks(...ALL_FEEDBACKS)
+	}
+
 	private teardown(): void {
 		this.sse?.stop()
 		this.sse = null
@@ -253,3 +257,5 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		this.pollTimer = null
 	}
 }
+
+runEntrypoint(ModuleInstance, UpgradeScripts)
