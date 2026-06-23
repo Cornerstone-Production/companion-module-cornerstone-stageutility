@@ -72,6 +72,15 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 			],
 			callback: (fb) => self.state.stage?.resolvedByOutput[String(fb.options.output)]?.viewId === fb.options.view,
 		},
+		output_blackout: {
+			name: 'Output is blacked out',
+			type: 'boolean',
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			options: [
+				{ id: 'output', type: 'dropdown', label: 'Output (screen)', choices: outputs, default: firstId(outputs) },
+			],
+			callback: (fb) => self.state.stage?.resolvedByOutput[String(fb.options.output)]?.blackout === true,
+		},
 		captions_idle: {
 			name: 'Captions idle (no recent line)',
 			type: 'boolean',

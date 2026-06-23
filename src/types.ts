@@ -47,6 +47,7 @@ export interface ResolvedOutputDTO {
 	viewId: string | null
 	kind: string
 	viewName: string | null
+	blackout?: boolean
 }
 
 // A flat wireless channel from GET /api/integrations/wireless/channels.

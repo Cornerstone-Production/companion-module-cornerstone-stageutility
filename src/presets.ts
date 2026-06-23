@@ -52,6 +52,14 @@ export function UpdatePresets(self: ModuleInstance): void {
 			steps: [{ down: [{ actionId: 'refresh_displays', options: { scope: 'all', output: '' } }], up: [] }],
 			feedbacks: [],
 		},
+		blackout: {
+			type: 'button',
+			category: 'Routing & Displays',
+			name: 'Blackout a screen (toggle, lit when black)',
+			style: { text: 'BLACK\\nOUT', size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
+			steps: [{ down: [{ actionId: 'blackout', options: { output: '', mode: 'toggle' } }], up: [] }],
+			feedbacks: [{ feedbackId: 'output_blackout', options: { output: '' }, style: { bgcolor: RED, color: WHITE } }],
+		},
 		plan_mode: {
 			type: 'button',
 			category: 'Routing & Displays',

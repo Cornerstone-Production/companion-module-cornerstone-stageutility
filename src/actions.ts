@@ -113,6 +113,33 @@ export function UpdateActions(self: ModuleInstance): void {
 				}
 			},
 		},
+		blackout: {
+			name: 'Blackout a screen (full black) — on/off/toggle',
+			options: [
+				{ id: 'output', type: 'dropdown', label: 'Output (screen)', choices: outputs, default: firstId(outputs) },
+				{
+					id: 'mode',
+					type: 'dropdown',
+					label: 'Action',
+					choices: [
+						{ id: 'on', label: 'Blackout ON' },
+						{ id: 'off', label: 'Blackout OFF' },
+						{ id: 'toggle', label: 'Toggle' },
+					],
+					default: 'toggle',
+				},
+			],
+			callback: async (event) => {
+				const outputId = String(event.options.output)
+				const current = self.state.stage?.resolvedByOutput[outputId]?.blackout ?? false
+				const on = event.options.mode === 'toggle' ? !current : event.options.mode === 'on'
+				try {
+					await self.api.setBlackout(outputId, on)
+				} catch (err) {
+					self.log('warn', `Blackout failed: ${err instanceof Error ? err.message : String(err)}`)
+				}
+			},
+		},
 		refresh_displays: {
 			name: 'Reload kiosk display(s)',
 			options: [

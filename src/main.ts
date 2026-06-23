@@ -19,6 +19,7 @@ const ALL_FEEDBACKS = [
 	'propresenter_disconnected',
 	'plan_mode_manual',
 	'output_shows_view',
+	'output_blackout',
 	'captions_idle',
 ]
 
@@ -165,7 +166,7 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 				this.state.outputs = stage.outputs
 				this.refreshDefinitions()
 				SetVariableValues(this)
-				this.checkFeedbacks('plan_mode_manual', 'output_shows_view')
+				this.checkFeedbacks('plan_mode_manual', 'output_shows_view', 'output_blackout')
 				break
 			}
 			case 'pco:live':

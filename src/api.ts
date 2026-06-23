@@ -87,6 +87,9 @@ export class ApiClient {
 	async routeView(outputId: string, viewId: string | null): Promise<unknown> {
 		return this.request('PATCH', `/api/outputs/${encodeURIComponent(outputId)}`, { viewId })
 	}
+	async setBlackout(outputId: string, blackout: boolean): Promise<unknown> {
+		return this.request('PATCH', `/api/outputs/${encodeURIComponent(outputId)}`, { blackout })
+	}
 	async refreshDisplays(outputId?: string): Promise<unknown> {
 		return this.request('POST', '/api/displays/refresh', outputId ? { id: outputId } : {})
 	}
