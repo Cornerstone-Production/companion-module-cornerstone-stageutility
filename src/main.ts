@@ -22,6 +22,7 @@ const ALL_FEEDBACKS = [
 	'output_blackout',
 	'captions_idle',
 	'occupancy_over',
+	'people_count_text',
 ]
 
 export default class ModuleInstance extends InstanceBase<ModuleConfig> {
@@ -201,7 +202,7 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 				// Per-zone variables are dynamic — re-declare them when the zone set changes.
 				if (people.zones.length !== prevZones) this.updateVariableDefinitions()
 				SetVariableValues(this)
-				this.checkFeedbacks('occupancy_over')
+				this.checkFeedbacks('occupancy_over', 'people_count_text')
 				break
 			}
 			case 'wireless:connections-changed':

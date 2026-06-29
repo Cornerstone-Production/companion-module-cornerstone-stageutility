@@ -101,6 +101,36 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				return value != null && value >= threshold
 			},
 		},
+		people_count_text: {
+			name: 'Set button text to people count',
+			type: 'advanced',
+			options: [
+				{
+					id: 'metric',
+					type: 'dropdown',
+					label: 'Count',
+					choices: [
+						{ id: 'occupancy', label: 'In room (occupancy)' },
+						{ id: 'attendance', label: 'Attendance' },
+					],
+					default: 'occupancy',
+				},
+				{ id: 'zone', type: 'dropdown', label: 'Zone', choices: peopleZones, default: ANY_ID },
+				{ id: 'prefix', type: 'textinput', label: 'Prefix', default: '' },
+				{ id: 'suffix', type: 'textinput', label: 'Suffix', default: '' },
+			],
+			callback: (fb) => {
+				const people = self.state.peopleCount
+				const metric = fb.options.metric === 'attendance' ? 'attendance' : 'occupancy'
+				const value =
+					fb.options.zone === ANY_ID
+						? (people?.total[metric] ?? null)
+						: (people?.zones.find((z) => z.id === fb.options.zone)?.[metric] ?? null)
+				const prefix = String(fb.options.prefix ?? '')
+				const suffix = String(fb.options.suffix ?? '')
+				return { text: `${prefix}${value ?? '—'}${suffix}` }
+			},
+		},
 		captions_idle: {
 			name: 'Captions idle (no recent line)',
 			type: 'boolean',
