@@ -3,6 +3,7 @@ import type {
 	HealthDTO,
 	OutputDTO,
 	PcoLiveDTO,
+	PeopleCountDTO,
 	PlanDTO,
 	PresetDTO,
 	ProPresenterStatusDTO,
@@ -60,6 +61,9 @@ export class ApiClient {
 	}
 	async getProPresenter(): Promise<ProPresenterStatusDTO> {
 		return this.request('GET', '/api/propresenter/status')
+	}
+	async getPeopleCount(): Promise<PeopleCountDTO> {
+		return this.request('GET', '/api/people/count')
 	}
 
 	// ── Control verbs (Companion actions) ──

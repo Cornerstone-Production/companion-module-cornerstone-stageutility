@@ -1,7 +1,22 @@
 import type ModuleInstance from './main.js'
 
 export function UpdateVariableDefinitions(self: ModuleInstance): void {
+	// Per-zone people variables are dynamic — one set per zone the API reports.
+	const zoneVars = (self.state.peopleCount?.zones ?? []).flatMap((_, i) => {
+		const n = i + 1
+		return [
+			{ variableId: `people_zone_${n}_name`, name: `People zone ${n} name` },
+			{ variableId: `people_zone_${n}_attendance`, name: `People zone ${n} attendance` },
+			{ variableId: `people_zone_${n}_occupancy`, name: `People zone ${n} occupancy (in room)` },
+		]
+	})
 	self.setVariableDefinitions([
+		{ variableId: 'people_attendance', name: 'People attendance (total today)' },
+		{ variableId: 'people_occupancy', name: 'People occupancy (in room now)' },
+		{ variableId: 'people_connected', name: 'People counter connected (yes/no)' },
+		{ variableId: 'people_updated', name: 'People count last updated (local time)' },
+		{ variableId: 'people_zone_count', name: 'People zone count' },
+		...zoneVars,
 		{ variableId: 'plan_title', name: 'Current plan title' },
 		{ variableId: 'series_title', name: 'Current series title' },
 		{ variableId: 'service_type', name: 'Service type' },
@@ -39,8 +54,24 @@ export function SetVariableValues(self: ModuleInstance): void {
 	const live = st.pcoLive
 	const battery = st.lowestBattery()
 	const countdownSec = st.countdownSeconds()
+	const people = st.peopleCount
+
+	const peopleVars: Record<string, string> = {
+		people_attendance: people?.total.attendance != null ? String(people.total.attendance) : '',
+		people_occupancy: people?.total.occupancy != null ? String(people.total.occupancy) : '',
+		people_connected: people?.connected ? 'yes' : 'no',
+		people_updated: people?.updatedAt ? new Date(people.updatedAt).toLocaleTimeString() : '',
+		people_zone_count: String(people?.zones.length ?? 0),
+	}
+	;(people?.zones ?? []).forEach((z, i) => {
+		const n = i + 1
+		peopleVars[`people_zone_${n}_name`] = z.name
+		peopleVars[`people_zone_${n}_attendance`] = String(z.attendance)
+		peopleVars[`people_zone_${n}_occupancy`] = String(z.occupancy)
+	})
 
 	self.setVariableValues({
+		...peopleVars,
 		plan_title: stage?.planTitle ?? '',
 		series_title: stage?.planSeriesTitle ?? '',
 		service_type: stage?.serviceTypeName ?? '',

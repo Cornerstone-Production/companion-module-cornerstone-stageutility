@@ -1,6 +1,6 @@
 import { combineRgb } from '@companion-module/base'
 import type ModuleInstance from './main.js'
-import { ANY_ID, channelChoices, firstId, outputChoices, viewChoices } from './choices.js'
+import { ANY_ID, channelChoices, firstId, outputChoices, peopleZoneChoices, viewChoices } from './choices.js'
 
 const RED = combineRgb(200, 30, 30)
 const YELLOW = combineRgb(220, 180, 0)
@@ -13,6 +13,7 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 	const channels = channelChoices(self.state, true)
 	const outputs = outputChoices(self.state)
 	const views = viewChoices(self.state, false)
+	const peopleZones = peopleZoneChoices(self.state)
 
 	self.setFeedbackDefinitions({
 		countdown_overtime: {
@@ -80,6 +81,25 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				{ id: 'output', type: 'dropdown', label: 'Output (screen)', choices: outputs, default: firstId(outputs) },
 			],
 			callback: (fb) => self.state.stage?.resolvedByOutput[String(fb.options.output)]?.blackout === true,
+		},
+		occupancy_over: {
+			name: 'People occupancy over threshold',
+			type: 'boolean',
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			options: [
+				{ id: 'threshold', type: 'number', label: 'At or above', default: 100, min: 0, max: 100000 },
+				{ id: 'zone', type: 'dropdown', label: 'Zone', choices: peopleZones, default: ANY_ID },
+			],
+			callback: (fb) => {
+				const people = self.state.peopleCount
+				if (!people) return false
+				const threshold = Number(fb.options.threshold)
+				const value =
+					fb.options.zone === ANY_ID
+						? people.total.occupancy
+						: (people.zones.find((z) => z.id === fb.options.zone)?.occupancy ?? null)
+				return value != null && value >= threshold
+			},
 		},
 		captions_idle: {
 			name: 'Captions idle (no recent line)',

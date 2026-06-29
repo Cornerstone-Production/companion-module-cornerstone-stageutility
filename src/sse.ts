@@ -10,6 +10,7 @@ export const SSE_EVENTS = [
 	'propresenter:status',
 	'prodcom:transcript',
 	'wireless:connections-changed',
+	'people:count',
 ] as const
 
 export type SseEventName = (typeof SSE_EVENTS)[number]

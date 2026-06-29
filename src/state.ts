@@ -2,6 +2,7 @@ import type {
 	DeviceStatusDTO,
 	OutputDTO,
 	PcoLiveDTO,
+	PeopleCountDTO,
 	PlanDTO,
 	PresetDTO,
 	ProPresenterStatusDTO,
@@ -16,6 +17,7 @@ export class StateCache {
 	stage: StageStateDTO | null = null
 	pcoLive: PcoLiveDTO | null = null
 	propresenter: ProPresenterStatusDTO | null = null
+	peopleCount: PeopleCountDTO | null = null
 
 	// Enumeration lists for action dropdowns (fetched on connect + on change).
 	views: ViewDTO[] = []

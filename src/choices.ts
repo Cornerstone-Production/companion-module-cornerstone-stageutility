@@ -30,6 +30,12 @@ export function channelChoices(state: StateCache, includeAny: boolean): Dropdown
 	return includeAny ? [{ id: ANY_ID, label: 'Any channel' }, ...list] : list
 }
 
+/** Zone choices for the people-count feedback; ANY_ID = the building total. */
+export function peopleZoneChoices(state: StateCache): DropdownChoice[] {
+	const zones = state.peopleCount?.zones ?? []
+	return [{ id: ANY_ID, label: 'Building total' }, ...zones.map((z) => ({ id: z.id, label: z.name }))]
+}
+
 /** First choice id (for a dropdown `default`), or '' when the list is empty. */
 export function firstId(choices: DropdownChoice[]): string {
 	return choices.length > 0 ? String(choices[0].id) : ''

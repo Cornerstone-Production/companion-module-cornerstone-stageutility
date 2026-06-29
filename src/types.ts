@@ -102,3 +102,17 @@ export interface TranscriptLineDTO {
 	isFinal: boolean
 	at: string
 }
+
+export interface PeopleZoneCountDTO {
+	id: string
+	name: string
+	attendance: number
+	occupancy: number
+}
+
+export interface PeopleCountDTO {
+	connected: boolean
+	updatedAt: string | null
+	total: { attendance: number | null; occupancy: number | null }
+	zones: PeopleZoneCountDTO[]
+}

@@ -8,7 +8,7 @@ import { UpdateFeedbacks } from './feedbacks.js'
 import { SetVariableValues, UpdateVariableDefinitions } from './variables.js'
 import { UpdatePresets } from './presets.js'
 import { UpgradeScripts } from './upgrades.js'
-import type { PcoLiveDTO, ProPresenterStatusDTO, StageStateDTO, TranscriptLineDTO } from './types.js'
+import type { PcoLiveDTO, PeopleCountDTO, ProPresenterStatusDTO, StageStateDTO, TranscriptLineDTO } from './types.js'
 
 const RETRY_MS = 5000
 
@@ -21,6 +21,7 @@ const ALL_FEEDBACKS = [
 	'output_shows_view',
 	'output_blackout',
 	'captions_idle',
+	'occupancy_over',
 ]
 
 export default class ModuleInstance extends InstanceBase<ModuleConfig> {
@@ -109,16 +110,18 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 
 	/** Pull every list + live snapshot into the cache. */
 	private async hydrate(): Promise<void> {
-		const [stage, views, outputs, serviceTypes, presets, channels, pcoLive, propresenter] = await Promise.all([
-			this.api.getState(),
-			this.api.getViews(),
-			this.api.getOutputs(),
-			this.api.getServiceTypes(),
-			this.api.getPresets(),
-			this.api.getChannels(),
-			this.api.getPcoLive().catch(() => null),
-			this.api.getProPresenter().catch(() => null),
-		])
+		const [stage, views, outputs, serviceTypes, presets, channels, pcoLive, propresenter, peopleCount] =
+			await Promise.all([
+				this.api.getState(),
+				this.api.getViews(),
+				this.api.getOutputs(),
+				this.api.getServiceTypes(),
+				this.api.getPresets(),
+				this.api.getChannels(),
+				this.api.getPcoLive().catch(() => null),
+				this.api.getProPresenter().catch(() => null),
+				this.api.getPeopleCount().catch(() => null),
+			])
 		this.state.stage = stage
 		this.state.views = views
 		this.state.outputs = outputs
@@ -127,6 +130,7 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.state.channels = channels
 		if (pcoLive) this.applyPcoLive(pcoLive)
 		if (propresenter) this.state.propresenter = propresenter
+		if (peopleCount) this.state.peopleCount = peopleCount
 		if (stage.serviceTypeId) {
 			this.state.plans = await this.api.getPlans(stage.serviceTypeId).catch(() => [])
 		}
@@ -188,6 +192,16 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 					SetVariableValues(this)
 					this.checkFeedbacks('captions_idle')
 				}
+				break
+			}
+			case 'people:count': {
+				const people = data as PeopleCountDTO
+				const prevZones = this.state.peopleCount?.zones.length ?? 0
+				this.state.peopleCount = people
+				// Per-zone variables are dynamic — re-declare them when the zone set changes.
+				if (people.zones.length !== prevZones) this.updateVariableDefinitions()
+				SetVariableValues(this)
+				this.checkFeedbacks('occupancy_over')
 				break
 			}
 			case 'wireless:connections-changed':
