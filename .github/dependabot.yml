@@ -1,11 +1,16 @@
 # Dependency updates for the Companion module.
 #
+# Targeted at `beta`, not the default branch. The model is main <- beta <- feature
+# branches, and main only ever receives beta — so a bump landing on main directly
+# would be a change that never went through the test track.
+#
 # Security alerts arrive without this file; what it adds is routine version
 # updates, so the module does not drift years behind between releases.
 version: 2
 updates:
   - package-ecosystem: "npm"
     directory: "/"
+    target-branch: "beta"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
@@ -19,6 +24,7 @@ updates:
 
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "beta"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
