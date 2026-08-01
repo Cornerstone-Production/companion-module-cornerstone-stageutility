@@ -1,46 +1,81 @@
-# companion-module-cornerstone-stageutility
+# Stage Utility for Bitfocus Companion
 
-A [Bitfocus Companion](https://bitfocus.io/companion) module for **Cornerstone Stage Utility** — drive
-PCO Services Live, route Views onto screens, reload kiosk displays, and surface mic RF/battery, the
-PCO countdown, ProPresenter status and captions on a Stream Deck. It talks to Stage Utility purely
-over its HTTP + SSE API on the LAN (no auth).
+A [Bitfocus Companion](https://bitfocus.io/companion) module for
+[Stage Utility](https://github.com/Cornerstone-Production/Stage-Utility), the
+church stage-monitor server.
 
-See [companion/HELP.md](./companion/HELP.md) for the action/feedback/variable reference and
-[LICENSE](./LICENSE) (MIT).
+Drive PCO Services Live, route views onto screens, black out an output, reload
+displays, and read mic RF and battery, the PCO countdown, ProPresenter status,
+captions and people counts from a Stream Deck.
 
-## Develop
+The module connects to Stage Utility over its HTTP and SSE API on the local
+network. There is no authentication — the API is LAN-only by design.
 
-This is a standard `@companion-module/base` (v2.x) module using Yarn 4 (via corepack).
+[companion/HELP.md](./companion/HELP.md) is the full action, feedback and
+variable reference, and is what Companion shows in-app.
+
+## Install
+
+Download the `.tgz` from the
+[latest release](https://github.com/Cornerstone-Production/companion-module-cornerstone-stageutility/releases)
+and add it to Companion as a module.
+
+Then add the connection — **Cornerstone → Stage Utility** — and enter the Stage
+Utility server's IP and port. Companion takes host and port separately and
+cannot resolve a DNS name, so use the address shown in Stage Utility under
+Settings → Integrations → Bitfocus Companion.
+
+### Running from source
+
+For development, or to run a modified copy:
 
 ```sh
 corepack enable
 yarn install
-yarn build      # compile src → dist
-yarn dev        # watch-compile
-yarn lint       # eslint + prettier
-yarn package    # validate manifest + build the distributable .tgz
+yarn build
 ```
 
-The module connects to a Stage Utility server; run one locally (default `http://localhost:8788`) to
-test against. Set the connection's Host/Port in Companion to point at it.
+Point Companion at the folder holding this repository under
+**Settings → Developer → Developer modules path**, enable developer modules, and
+restart Companion. Starting Companion with `--extra-module-path /path/to/modules`
+does the same.
 
-## Install (sideload, private use)
+## Develop
 
-This module is distributed privately for in-house use rather than the public Bitfocus registry.
+A standard `@companion-module/base` v2 module on Yarn 4 via corepack.
 
-1. On each machine running Companion, create a developer-modules folder, e.g. `~/companion-modules/`.
-2. Clone or copy this repo into it and `yarn install && yarn build` (so `dist/` exists), **or** drop
-   in an unpacked `yarn package` artifact.
-3. In Companion: **Settings → ⚙ (Developer) → Developer modules path** → select that folder, enable
-   developer modules, and restart Companion.
-4. Add the connection: **Cornerstone → Stage Utility**.
+```sh
+yarn build      # compile src to dist
+yarn dev        # watch-compile
+yarn lint       # eslint, prettier, and the manifest check
+yarn package    # validate the manifest and build the distributable .tgz
+```
 
-Alternatively start Companion with `--extra-module-path /path/to/companion-modules` (or set
-`COMPANION_DEV_MODULES`).
+Run a Stage Utility server to test against — `http://localhost:8788` by default
+— and point the connection's host and port at it.
 
-## Releasing (later, optional public listing)
+The version lives in `package.json`. `companion/manifest.json` is generated from
+it, so never edit the version there: `yarn build` writes it through, and
+`yarn lint` fails on a mismatch.
 
-The module id/manifest already conform to Bitfocus conventions
-(`companion-module-cornerstone-stageutility`, id `cornerstone-stageutility`). To publish: make the
-repo public, tag a semver release, and submit the tag via the Bitfocus developer portal. Keep the
-module `id` stable across versions.
+## Branches and releases
+
+`main` ← `beta` ← feature branches. Work lands on `beta`; `main` only ever
+receives `beta`.
+
+Releases are cut automatically from
+[Conventional Commits](https://www.conventionalcommits.org). A push to `beta`
+publishes a prerelease `X.Y.Z-beta.N`; a push to `main` publishes the release
+`X.Y.Z`. A push carrying only `docs`, `chore`, `ci`, `build`, `test` or
+`refactor` commits publishes nothing.
+
+Every release carries the `.tgz` Companion installs, built by Bitfocus's own
+`companion-module-build` and verified before publishing.
+
+## Licence
+
+[MIT](./LICENSE) — the convention across Companion modules, and Companion itself.
+
+Stage Utility, the server this module talks to, is
+[GPL-3.0-or-later](https://github.com/Cornerstone-Production/Stage-Utility/blob/main/LICENSE).
+Installing this module does not change that.
