@@ -244,7 +244,12 @@ jobs:
           V="${{ needs.release.outputs.version }}"
           TGZ=$(ls ./*.tgz | head -1)
           echo "package: $TGZ"
-          ROOT=$(tar -tzf "$TGZ" | head -1 | cut -d/ -f1)
+          # Listed once into a file rather than piped. `tar ... | head -1` makes
+          # head exit early, GNU tar takes SIGPIPE, and pipefail turns that into
+          # a failed step — which is what broke the first v1.2.0 release. BSD tar
+          # on macOS tolerates it, so it does not reproduce locally.
+          tar -tzf "$TGZ" > /tmp/pkg-list.txt
+          ROOT=$(cut -d/ -f1 /tmp/pkg-list.txt | sort -u | head -1)
           MANIFEST=$(tar -xzOf "$TGZ" "$ROOT/companion/manifest.json")
           GOT=$(node -e "process.stdout.write(JSON.parse(process.argv[1]).version)" "$MANIFEST")
           [ "$GOT" = "$V" ] || { echo "::error::manifest says $GOT, tag says $V"; exit 1; }
@@ -253,7 +258,7 @@ jobs:
             const path = require('node:path');
             process.stdout.write(path.posix.normalize(path.posix.join('$ROOT/companion', process.argv[1])));
           " "$ENTRY")
-          tar -tzf "$TGZ" | grep -qx "$RESOLVED" \
+          grep -qx "$RESOLVED" /tmp/pkg-list.txt \
             || { echo "::error::entrypoint $ENTRY is not in the package"; exit 1; }
           echo "manifest v$GOT, entrypoint $ENTRY present"
 
