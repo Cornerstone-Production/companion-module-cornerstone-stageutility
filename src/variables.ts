@@ -2,39 +2,39 @@ import type ModuleInstance from './main.js'
 
 export function UpdateVariableDefinitions(self: ModuleInstance): void {
 	// Per-zone people variables are dynamic — one set per zone the API reports.
-	const zoneVars = (self.state.peopleCount?.zones ?? []).flatMap((_, i) => {
+	// v2 takes an object keyed by variableId rather than an array of records.
+	const zoneVars: Record<string, { name: string }> = {}
+	for (const [i] of (self.state.peopleCount?.zones ?? []).entries()) {
 		const n = i + 1
-		return [
-			{ variableId: `people_zone_${n}_name`, name: `People zone ${n} name` },
-			{ variableId: `people_zone_${n}_attendance`, name: `People zone ${n} attendance` },
-			{ variableId: `people_zone_${n}_occupancy`, name: `People zone ${n} occupancy (in room)` },
-		]
-	})
-	self.setVariableDefinitions([
-		{ variableId: 'people_attendance', name: 'People attendance (total today)' },
-		{ variableId: 'people_occupancy', name: 'People occupancy (in room now)' },
-		{ variableId: 'people_connected', name: 'People counter connected (yes/no)' },
-		{ variableId: 'people_updated', name: 'People count last updated (local time)' },
-		{ variableId: 'people_zone_count', name: 'People zone count' },
+		zoneVars[`people_zone_${n}_name`] = { name: `People zone ${n} name` }
+		zoneVars[`people_zone_${n}_attendance`] = { name: `People zone ${n} attendance` }
+		zoneVars[`people_zone_${n}_occupancy`] = { name: `People zone ${n} occupancy (in room)` }
+	}
+	self.setVariableDefinitions({
+		people_attendance: { name: 'People attendance (total today)' },
+		people_occupancy: { name: 'People occupancy (in room now)' },
+		people_connected: { name: 'People counter connected (yes/no)' },
+		people_updated: { name: 'People count last updated (local time)' },
+		people_zone_count: { name: 'People zone count' },
 		...zoneVars,
-		{ variableId: 'plan_title', name: 'Current plan title' },
-		{ variableId: 'series_title', name: 'Current series title' },
-		{ variableId: 'service_type', name: 'Service type' },
-		{ variableId: 'plan_mode', name: 'Plan mode (auto/manual)' },
-		{ variableId: 'current_item', name: 'ProPresenter current item' },
-		{ variableId: 'next_item', name: 'ProPresenter next item' },
-		{ variableId: 'slide_index', name: 'Slide index' },
-		{ variableId: 'slide_count', name: 'Slide count' },
-		{ variableId: 'countdown_label', name: 'PCO countdown label' },
-		{ variableId: 'countdown_seconds', name: 'PCO countdown (mm:ss)' },
-		{ variableId: 'mics_online', name: 'Mics online' },
-		{ variableId: 'mics_total', name: 'Mics total' },
-		{ variableId: 'lowest_battery_pct', name: 'Lowest mic battery %' },
-		{ variableId: 'lowest_battery_channel', name: 'Lowest mic battery channel' },
-		{ variableId: 'last_caption_text', name: 'Last caption text' },
-		{ variableId: 'last_caption_speaker', name: 'Last caption speaker' },
-		{ variableId: 'last_synced', name: 'Last synced (local time)' },
-	])
+		plan_title: { name: 'Current plan title' },
+		series_title: { name: 'Current series title' },
+		service_type: { name: 'Service type' },
+		plan_mode: { name: 'Plan mode (auto/manual)' },
+		current_item: { name: 'ProPresenter current item' },
+		next_item: { name: 'ProPresenter next item' },
+		slide_index: { name: 'Slide index' },
+		slide_count: { name: 'Slide count' },
+		countdown_label: { name: 'PCO countdown label' },
+		countdown_seconds: { name: 'PCO countdown (mm:ss)' },
+		mics_online: { name: 'Mics online' },
+		mics_total: { name: 'Mics total' },
+		lowest_battery_pct: { name: 'Lowest mic battery %' },
+		lowest_battery_channel: { name: 'Lowest mic battery channel' },
+		last_caption_text: { name: 'Last caption text' },
+		last_caption_speaker: { name: 'Last caption speaker' },
+		last_synced: { name: 'Last synced (local time)' },
+	})
 }
 
 function formatDuration(totalSec: number): string {

@@ -102,6 +102,9 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 			},
 		},
 		people_count_text: {
+			// v2 requires an advanced feedback to declare what it changes, so
+			// Companion knows which button properties it owns.
+			affectedProperties: ['text'],
 			name: 'Set button text to people count',
 			type: 'advanced',
 			options: [
