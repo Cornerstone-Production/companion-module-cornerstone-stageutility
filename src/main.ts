@@ -1,4 +1,4 @@
-import { InstanceBase, InstanceStatus, runEntrypoint, type SomeCompanionConfigField } from '@companion-module/base'
+import { InstanceBase, InstanceStatus, type SomeCompanionConfigField } from '@companion-module/base'
 import { ApiClient } from './api.js'
 import { baseUrl, GetConfigFields, type ModuleConfig } from './config.js'
 import { StateCache } from './state.js'
@@ -8,7 +8,14 @@ import { UpdateFeedbacks } from './feedbacks.js'
 import { SetVariableValues, UpdateVariableDefinitions } from './variables.js'
 import { UpdatePresets } from './presets.js'
 import { UpgradeScripts } from './upgrades.js'
-import type { PcoLiveDTO, PeopleCountDTO, ProPresenterStatusDTO, StageStateDTO, TranscriptLineDTO } from './types.js'
+import type {
+	PcoLiveDTO,
+	PeopleCountDTO,
+	ProPresenterStatusDTO,
+	StageStateDTO,
+	TranscriptLineDTO,
+	StageUtilityInstanceTypes,
+} from './types.js'
 
 const RETRY_MS = 5000
 
@@ -23,9 +30,9 @@ const ALL_FEEDBACKS = [
 	'captions_idle',
 	'occupancy_over',
 	'people_count_text',
-]
+] as const
 
-export default class ModuleInstance extends InstanceBase<ModuleConfig> {
+export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTypes> {
 	config!: ModuleConfig
 	api!: ApiClient
 	state = new StateCache()
@@ -100,7 +107,7 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 			await this.hydrate()
 			this.refreshDefinitions()
 			SetVariableValues(this)
-			this.checkAllFeedbacks()
+			this.refreshFeedbacks()
 			this.updateStatus(InstanceStatus.Ok, health.name ?? undefined)
 			this.startSse()
 		} catch (err) {
@@ -161,7 +168,7 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 				void this.hydrate().then(() => {
 					this.refreshDefinitions()
 					SetVariableValues(this)
-					this.checkAllFeedbacks()
+					this.refreshFeedbacks()
 				})
 				break
 			case 'stage:state-changed': {
@@ -247,7 +254,7 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 				.then(() => {
 					this.refreshDefinitions()
 					SetVariableValues(this)
-					this.checkAllFeedbacks()
+					this.refreshFeedbacks()
 				})
 				.catch(() => undefined)
 		}, seconds * 1000)
@@ -259,7 +266,9 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 		this.updateFeedbacks()
 	}
 
-	private checkAllFeedbacks(): void {
+	// Renamed: v2 gives InstanceBase its own checkAllFeedbacks, and a private
+	// method of the same name collides with it.
+	private refreshFeedbacks(): void {
 		this.checkFeedbacks(...ALL_FEEDBACKS)
 	}
 
@@ -274,4 +283,8 @@ export default class ModuleInstance extends InstanceBase<ModuleConfig> {
 	}
 }
 
-runEntrypoint(ModuleInstance, UpgradeScripts)
+// v2 removed runEntrypoint. Companion now imports the class as the default
+// export and the upgrade scripts as a named one — so the scripts that migrate a
+// user's saved config between module versions still have to be exported here,
+// or an upgrade silently drops their settings.
+export { UpgradeScripts }
