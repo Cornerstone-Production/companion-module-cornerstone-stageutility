@@ -1,50 +1,51 @@
 {
-	"name": "companion-module-cornerstone-stageutility",
-	"version": "1.2.0",
-	"main": "dist/main.js",
-	"type": "module",
-	"scripts": {
-		"postinstall": "husky",
-		"format": "prettier -w .",
-		"package": "run build && companion-module-build",
-		"build": "rimraf dist && run build:main",
-		"build:main": "tsc -p tsconfig.build.json",
-		"dev": "tsc -p tsconfig.build.json --watch",
-		"lint:raw": "eslint",
-		"lint": "run lint:raw ."
-	},
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/Cornerstone-Production/companion-module-cornerstone-stageutility.git"
-	},
-	"engines": {
-		"node": "^22.20",
-		"yarn": "^4"
-	},
-	"dependencies": {
-		"@companion-module/base": "~1.14.1",
-		"eventsource": "^4.0.0"
-	},
-	"devDependencies": {
-		"@companion-module/tools": "^2.7.2",
-		"@types/node": "^22.19.17",
-		"eslint": "^8.57.1",
-		"husky": "^9.1.7",
-		"lint-staged": "^16.4.0",
-		"prettier": "^3.8.3",
-		"rimraf": "^6.1.3",
-		"typescript": "~5.7.3",
-		"typescript-eslint": "^7.18.0"
-	},
-	"prettier": "@companion-module/tools/.prettierrc.json",
-	"lint-staged": {
-		"*.{css,json,md,scss}": [
-			"prettier --write"
-		],
-		"*.{ts,tsx,js,jsx}": [
-			"yarn lint:raw --fix"
-		]
-	},
-	"packageManager": "yarn@4.12.0"
+  "name": "companion-module-cornerstone-stageutility",
+  "version": "1.2.0",
+  "main": "dist/main.js",
+  "type": "module",
+  "scripts": {
+    "postinstall": "husky",
+    "format": "prettier -w .",
+    "package": "run build && companion-module-build",
+    "build": "yarn sync-manifest && rimraf dist && run build:main",
+    "build:main": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "lint:raw": "eslint",
+    "lint": "run lint:raw . && node scripts/sync-manifest.mjs --check",
+    "sync-manifest": "node scripts/sync-manifest.mjs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cornerstone-Production/companion-module-cornerstone-stageutility.git"
+  },
+  "engines": {
+    "node": "^22.20",
+    "yarn": "^4"
+  },
+  "dependencies": {
+    "@companion-module/base": "~1.14.1",
+    "eventsource": "^4.0.0"
+  },
+  "devDependencies": {
+    "@companion-module/tools": "^2.7.2",
+    "@types/node": "^22.19.17",
+    "eslint": "^8.57.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.3",
+    "rimraf": "^6.1.3",
+    "typescript": "~5.7.3",
+    "typescript-eslint": "^7.18.0"
+  },
+  "prettier": "@companion-module/tools/.prettierrc.json",
+  "lint-staged": {
+    "*.{css,json,md,scss}": [
+      "prettier --write"
+    ],
+    "*.{ts,tsx,js,jsx}": [
+      "yarn lint:raw --fix"
+    ]
+  },
+  "packageManager": "yarn@4.12.0"
 }
