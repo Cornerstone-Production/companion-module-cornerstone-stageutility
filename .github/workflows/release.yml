@@ -174,6 +174,12 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           yarn version "$V" --immediate 2>/dev/null || npm version "$V" --no-git-tag-version
+          # Write the new version through to the manifest BEFORE committing.
+          # Without this the bump commit carried a package.json at the new
+          # version and a manifest still at the old one, and the next release
+          # was blocked by the staleness check — which is exactly the drift that
+          # check exists to catch, just caught a release too late.
+          node scripts/sync-manifest.mjs
           git add package.json companion/manifest.json
           git commit -m "chore(release): v$V [skip ci]"
           git tag "v$V"
