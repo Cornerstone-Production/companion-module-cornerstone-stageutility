@@ -8,6 +8,11 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
   pull_request:
 
+# Least privilege, stated rather than inherited: the repository default is read
+# today, but a settings change should not silently widen this workflow.
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint
