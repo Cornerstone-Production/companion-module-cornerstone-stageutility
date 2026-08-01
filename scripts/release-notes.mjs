@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // release-notes.mjs — the notes attached to a GitHub release.
 //
 // The workflow used to pass `git log` straight through from the previous tag of
@@ -16,67 +15,66 @@
 // previous tag for a prerelease — the caller decides, because that is the same
 // anchor question the version calculation answers.
 
-import { execFileSync } from "node:child_process";
+import { execFileSync } from 'node:child_process'
 
-const [, , version, fromRef] = process.argv;
+const [, , version, fromRef] = process.argv
 if (!version) {
-  console.error("usage: release-notes.mjs <version> [from-ref]");
-  process.exit(1);
+	throw new Error('usage: release-notes.mjs <version> [from-ref]')
 }
 
 /** Commit types that change nothing an operator could notice. */
-const INVISIBLE = new Set(["chore", "ci", "build", "docs", "test", "refactor", "style"]);
+const INVISIBLE = new Set(['chore', 'ci', 'build', 'docs', 'test', 'refactor', 'style'])
 
 /** `type(scope)!: subject` */
-const CONVENTIONAL = /^([a-z]+)(?:\(([^)]*)\))?(!)?:\s*(.+)$/i;
+const CONVENTIONAL = /^([a-z]+)(?:\(([^)]*)\))?(!)?:\s*(.+)$/i
 
 /** How many bullets a section may carry before the rest are summarised. */
-const CAP = 12;
+const CAP = 12
 
 function log(range) {
-  try {
-    return execFileSync("git", ["log", "--no-merges", "--format=%s", range], { encoding: "utf8" })
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
-  } catch {
-    return [];
-  }
+	try {
+		return execFileSync('git', ['log', '--no-merges', '--format=%s', range], { encoding: 'utf8' })
+			.split('\n')
+			.map((s) => s.trim())
+			.filter(Boolean)
+	} catch {
+		return []
+	}
 }
 
-const range = fromRef ? `${fromRef}..v${version}` : `v${version}`;
-const subjects = log(range);
+const range = fromRef ? `${fromRef}..v${version}` : `v${version}`
+const subjects = log(range)
 
-const features = [];
-const fixes = [];
-const breaking = [];
-const seen = new Set();
+const features = []
+const fixes = []
+const breaking = []
+const seen = new Set()
 
 for (const subject of subjects) {
-  const m = CONVENTIONAL.exec(subject);
-  if (!m) continue;
-  const [, rawType, scope, bang, text] = m;
-  const type = rawType.toLowerCase();
-  if (INVISIBLE.has(type) && !bang) continue;
+	const m = CONVENTIONAL.exec(subject)
+	if (!m) continue
+	const [, rawType, scope, bang, text] = m
+	const type = rawType.toLowerCase()
+	if (INVISIBLE.has(type) && !bang) continue
 
-  // The scope is the most useful part of a subject — it says which surface
-  // changed — so keep it as a lead-in rather than dropping it.
-  const line = scope ? `**${scope}** — ${text}` : text;
-  if (seen.has(line)) continue;
-  seen.add(line);
+	// The scope is the most useful part of a subject — it says which surface
+	// changed — so keep it as a lead-in rather than dropping it.
+	const line = scope ? `**${scope}** — ${text}` : text
+	if (seen.has(line)) continue
+	seen.add(line)
 
-  if (bang) breaking.push(line);
-  else if (type === "feat") features.push(line);
-  else if (type === "fix" || type === "perf") fixes.push(line);
+	if (bang) breaking.push(line)
+	else if (type === 'feat') features.push(line)
+	else if (type === 'fix' || type === 'perf') fixes.push(line)
 }
 
 /** A capped bullet list, saying plainly how much was left out. */
 function section(title, items) {
-  if (items.length === 0) return "";
-  const shown = items.slice(0, CAP).map((s) => `- ${s}`);
-  const rest = items.length - CAP;
-  if (rest > 0) shown.push(`- …and ${rest} more`);
-  return `## ${title}\n\n${shown.join("\n")}\n`;
+	if (items.length === 0) return ''
+	const shown = items.slice(0, CAP).map((s) => `- ${s}`)
+	const rest = items.length - CAP
+	if (rest > 0) shown.push(`- …and ${rest} more`)
+	return `## ${title}\n\n${shown.join('\n')}\n`
 }
 
 const install = `## Install
@@ -86,16 +84,14 @@ the Bitfocus module registry once this version is published there.
 
 Requires [Stage Utility](https://github.com/Cornerstone-Production/Stage-Utility)
 reachable on the same network — set the host and port in the connection config.
-`;
+`
 
 const parts = [
-  breaking.length ? section("Breaking", breaking) : "",
-  section("New", features),
-  section("Fixed", fixes),
-  install,
-];
+	breaking.length ? section('Breaking', breaking) : '',
+	section('New', features),
+	section('Fixed', fixes),
+	install,
+]
 
-const body = parts.filter(Boolean).join("\n");
-process.stdout.write(
-  body.trim() ? body : `Maintenance release — no user-facing changes.\n\n${install}`,
-);
+const body = parts.filter(Boolean).join('\n')
+process.stdout.write(body.trim() ? body : `Maintenance release — no user-facing changes.\n\n${install}`)
