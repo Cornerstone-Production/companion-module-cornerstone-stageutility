@@ -1,0 +1,267 @@
+# Versioning and releases, driven by Conventional Commits.
+#
+# beta  -> a prerelease  X.Y.Z-beta.N   (tag + GitHub prerelease)
+# main  -> the release   X.Y.Z          (tag + GitHub release)
+#
+# The level comes from every commit since the last STABLE release:
+#   feat            -> minor
+#   fix | perf      -> patch
+#   `!` or BREAKING -> major
+#   everything else -> no release
+#
+# Since the last stable, not since the last tag — so the base version moves only
+# when the pending release changes class. A feature opens X.Y+1.0-beta.1, and the
+# refinements that follow it ride the same base as -beta.2, -beta.3, … until main
+# ships X.Y+1.0. Only a breaking change raises the base again mid-line.
+#
+# TAG-DRIVEN ON PURPOSE. This never rewrites branch history — it commits the
+# version bump forward and tags it, so a released version always points at an
+# immutable commit and can be rebuilt exactly.
+#
+# The version lives in package.json; companion/manifest.json is generated from
+# it by scripts/sync-manifest.mjs, so both move together in the bump commit.
+
+name: Release
+
+on:
+  push:
+    branches: [beta, main]
+  # Re-run a release by hand — after fixing a credential, say, or a step that
+  # failed downstream of the tag. Safe to press: with nothing new since the last
+  # tag the run stands down rather than minting a version, and a tag that
+  # already exists is never rewritten.
+  workflow_dispatch:
+
+# Two pushes in quick succession must not both try to tag.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      # Consumed by the artifacts job below. `published` is only true when the tag
+      # actually reached the remote, so a run that stood down builds nothing.
+      version: ${{ steps.version.outputs.version }}
+      published: ${{ steps.push.outputs.pushed }}
+      last: ${{ steps.version.outputs.last }}
+      stable: ${{ steps.version.outputs.stable }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Decide the version
+        id: version
+        run: |
+          set -euo pipefail
+          BRANCH="${GITHUB_REF_NAME}"
+          CURRENT=$(node -p "require('./package.json').version")
+
+          # Two anchors, because "should we release?" and "at what level?" are
+          # different questions over different ranges.
+          #
+          # LAST is the previous tag of any kind — what testers last saw. It
+          # answers whether anything new has landed, and scopes the notes.
+          #
+          # STABLE is the last non-prerelease. It answers the level, because a
+          # beta line accumulates: everything since the last stable release is
+          # still unreleased, so a fix landing after a feat must not drag the
+          # base forward a second time. Measuring the level from LAST instead is
+          # why -beta.N never once reached 2 across twenty prereleases.
+          LAST=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || echo "")
+          STABLE=$(git tag -l 'v[0-9]*' --sort=-v:refname | grep -v -- '-' | head -1 || true)
+          echo "last tag: ${LAST:-<none>}  last stable: ${STABLE:-<none>}"
+
+          level_of() { # highest level among commits in the given range
+            local range="$1" subjects bodies
+            subjects=$(git log --no-merges --format='%s' $range)
+            bodies=$(git log --no-merges --format='%b' $range)
+            if grep -qE '^(feat|fix|perf|refactor|docs|test|build|ci|chore)(\([^)]+\))?!:' <<<"$subjects" \
+               || grep -q 'BREAKING CHANGE' <<<"$bodies"; then echo major
+            elif grep -qE '^feat(\([^)]+\))?:' <<<"$subjects"; then echo minor
+            elif grep -qE '^(fix|perf)(\([^)]+\))?:' <<<"$subjects"; then echo patch
+            else echo none
+            fi
+          }
+
+          # Has anything releasable landed that this branch has not published?
+          #
+          # The anchor differs by branch, and getting it wrong costs a release.
+          # On beta, "released" means any tag, so a push with nothing new does
+          # not mint another prerelease. On main, prerelease tags do NOT count:
+          # a beta -> main merge brings across commits that are already tagged
+          # as betas, so measuring from the last tag sees nothing new and skips
+          # the very release the merge exists to produce. That is exactly what
+          # happened to v1.9.3 — "Nothing user-visible since v1.9.3-beta.1".
+          if [ "$BRANCH" = main ]; then
+            NEWS=$(level_of "${STABLE:+$STABLE..HEAD}")
+          else
+            NEWS=$(level_of "${LAST:+$LAST..HEAD}")
+          fi
+          if [ "$NEWS" = none ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Nothing user-visible since ${LAST:-the beginning} — no release."
+            exit 0
+          fi
+
+          LEVEL=$(level_of "${STABLE:+$STABLE..HEAD}")
+          echo "new since $LAST: $NEWS   accumulated since ${STABLE:-<none>}: $LEVEL"
+
+          # Where the accumulated work since the last stable release lands.
+          FROM=${STABLE#v}; FROM=${FROM:-0.0.0}
+          IFS=. read -r MA MI PA <<<"$FROM"
+          case "$LEVEL" in
+            major) MA=$((MA+1)); MI=0; PA=0 ;;
+            minor) MI=$((MI+1)); PA=0 ;;
+            patch) PA=$((PA+1)) ;;
+          esac
+          TARGET="$MA.$MI.$PA"
+
+          # Never go backwards. The beta line can already sit above what this
+          # level implies — a long-running beta accumulates many features but
+          # is still only one minor ahead of the last stable release. Taking the
+          # higher of the two keeps the published version monotonic, which the
+          # in-app updater and anyone reading the tag list both depend on.
+          BASE=${CURRENT%%-*}
+          NEXT=$(printf '%s\n%s\n' "$TARGET" "$BASE" | sort -V | tail -1)
+          echo "target from ${STABLE:-<none>}: $TARGET   current base: $BASE   -> $NEXT"
+
+          if [ "$BRANCH" = beta ]; then
+            # Highest existing N for this base, not a count — a deleted tag must
+            # not hand the same number out twice.
+            N=$(git tag -l "v$NEXT-beta.*" | sed 's/.*-beta\.//' | sort -n | tail -1)
+            NEXT="$NEXT-beta.$(( ${N:-0} + 1 ))"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "next: $NEXT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "level=$LEVEL" >> "$GITHUB_OUTPUT"
+          echo "last=$LAST" >> "$GITHUB_OUTPUT"
+          echo "stable=$STABLE" >> "$GITHUB_OUTPUT"
+
+      - name: Verify before tagging
+        if: steps.version.outputs.skip == 'false'
+        run: yarn install --immutable && yarn lint && yarn build
+
+      - name: Bump, tag and push
+        id: push
+        if: steps.version.outputs.skip == 'false'
+        env:
+          V: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          yarn version "$V" --immediate 2>/dev/null || npm version "$V" --no-git-tag-version
+          git add package.json companion/manifest.json
+          git commit -m "chore(release): v$V [skip ci]"
+          git tag "v$V"
+
+          # Push the branch fast-forward only, then the tag. Never a force.
+          #
+          # A rejection here means the branch moved while we were verifying —
+          # someone merged another PR during the several minutes of ci + build.
+          # That is not a failure: this run's version was computed against a HEAD
+          # that is now stale, and the queued run for the newer commit will
+          # release everything since the last tag, at the correct level for the
+          # combined set. So stand down rather than erroring (or force-pushing:
+          # deployments track beta and a rewrite breaks their in-app updater).
+          if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+            git push origin "v$V"
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::${GITHUB_REF_NAME} advanced during this run — skipping v$V. The run for the newer commit will release it."
+          fi
+
+      # The release itself is created by the artifacts job, once the archives
+      # exist — see the note there. This job only tags.
+
+  # The installable module, attached to the release the job above tagged.
+  #
+  # Built by Bitfocus's own companion-module-build, which validates the manifest
+  # and produces the .tgz Companion consumes — so a release cannot carry a package
+  # their tooling would reject.
+  artifacts:
+    needs: release
+    if: needs.release.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: v${{ needs.release.outputs.version }} # the tagged tree, not the branch
+          # The notes are a commit range from the previous tag, which a shallow
+          # clone would have nothing to compute over.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Build and package
+        run: |
+          corepack enable
+          yarn install --immutable
+          yarn package
+
+      - name: Check the package is what Companion expects
+        # A .tgz that unpacks is not the same as one Companion can load. Assert the
+        # manifest version matches the tag and the entrypoint it names is present,
+        # before anything is published.
+        run: |
+          set -euo pipefail
+          V="${{ needs.release.outputs.version }}"
+          TGZ=$(ls ./*.tgz | head -1)
+          echo "package: $TGZ"
+          ROOT=$(tar -tzf "$TGZ" | head -1 | cut -d/ -f1)
+          MANIFEST=$(tar -xzOf "$TGZ" "$ROOT/companion/manifest.json")
+          GOT=$(node -e "process.stdout.write(JSON.parse(process.argv[1]).version)" "$MANIFEST")
+          [ "$GOT" = "$V" ] || { echo "::error::manifest says $GOT, tag says $V"; exit 1; }
+          ENTRY=$(node -e "process.stdout.write(JSON.parse(process.argv[1]).runtime.entrypoint)" "$MANIFEST")
+          RESOLVED=$(node -e "
+            const path = require('node:path');
+            process.stdout.write(path.posix.normalize(path.posix.join('$ROOT/companion', process.argv[1])));
+          " "$ENTRY")
+          tar -tzf "$TGZ" | grep -qx "$RESOLVED" \
+            || { echo "::error::entrypoint $ENTRY is not in the package"; exit 1; }
+          echo "manifest v$GOT, entrypoint $ENTRY present"
+
+      # Created WITH its asset, in one call. Publishing first and uploading after
+      # fails on a full release — "Cannot upload assets to an immutable release" —
+      # which shipped a version of the main app with no downloads at all.
+      - name: Create the release with the package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ needs.release.outputs.version }}
+          LAST: ${{ needs.release.outputs.last }}
+          STABLE: ${{ needs.release.outputs.stable }}
+          PRE: ${{ needs.release.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          if [ "$PRE" = true ]; then FROM="$LAST"; else FROM="$STABLE"; fi
+          node scripts/release-notes.mjs "$V" "$FROM" > /tmp/notes.md
+          gh release create "v$V" \
+            --title "v$V" \
+            --notes-file /tmp/notes.md \
+            $([ "$PRE" = true ] && echo --prerelease || echo --latest) \
+            ./*.tgz
+          echo "published v$V"
