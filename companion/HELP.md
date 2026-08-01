@@ -7,6 +7,11 @@ network — no password or cloud account.
 
 ### Setup
 
+Requires **Companion 4.3.0 or newer**. This module uses the v2 connection API,
+introduced in 4.3.0. On an older Companion the module installs and appears in the
+list, but the connection never starts — it reports "Connection not found or not
+running" with no config loaded.
+
 1. In Stage Utility, open **Settings → Integrations → Bitfocus Companion**. It
    shows the host or IP and the port to use; the default port is **8788**.
 2. In Companion, add a connection: **Cornerstone → Stage Utility**.
