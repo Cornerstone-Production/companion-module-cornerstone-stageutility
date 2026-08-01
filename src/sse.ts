@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { EventSource } from 'eventsource'
 
 // Event names emitted by Stage Utility on GET /api/events that this module cares
@@ -26,6 +27,8 @@ export interface SseHandlers {
 // can flip connection status and re-hydrate after a drop.
 export class SseClient {
 	private es: EventSource | null = null
+	/** Identifies this stream so the server can attach a channel filter to it. */
+	private readonly cid = `companion-${randomUUID()}`
 
 	constructor(
 		private readonly base: string,
@@ -36,10 +39,24 @@ export class SseClient {
 		this.stop()
 		// ?client=companion marks this stream so the server counts it as a
 		// connected Companion client (shown in the app's integration panel).
-		const es = new EventSource(`${this.base}/api/events?client=companion`)
+		// ?cid identifies it so the subscribe call below can narrow what it
+		// receives — without one the server has no filter to attach and falls
+		// back to sending every channel.
+		const es = new EventSource(`${this.base}/api/events?client=companion&cid=${encodeURIComponent(this.cid)}`)
 		this.es = es
 
-		es.addEventListener('open', () => this.handlers.onOpen())
+		es.addEventListener('open', () => {
+			// Report the channels this module actually reads. The server skips
+			// everything else for this connection — most importantly the 4 Hz
+			// spl:metrics stream, which was arriving on every stage and being
+			// discarded here.
+			//
+			// Sent on every open, not just the first: the server holds the filter
+			// in memory against the cid, so a restart of the app would otherwise
+			// leave this stream unfiltered until Companion reconnected.
+			void this.reportChannels()
+			this.handlers.onOpen()
+		})
 		es.addEventListener('error', () => this.handlers.onError())
 
 		for (const name of SSE_EVENTS) {
@@ -52,6 +69,25 @@ export class SseClient {
 				}
 				this.handlers.onEvent(name, parsed)
 			})
+		}
+	}
+
+	/**
+	 * Tell the server which channels to send.
+	 *
+	 * Best-effort: filtering is an optimisation, never a correctness dependency.
+	 * An older server without the route, or a failed request, simply means the
+	 * stream stays unfiltered — which is what happened before this existed.
+	 */
+	private async reportChannels(): Promise<void> {
+		try {
+			await fetch(`${this.base}/api/events/subscribe`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ cid: this.cid, channels: [...SSE_EVENTS] }),
+			})
+		} catch {
+			// Unfiltered is correct, just noisier.
 		}
 	}
 
