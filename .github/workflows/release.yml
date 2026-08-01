@@ -56,11 +56,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      # corepack BEFORE setup-node: `cache: yarn` would otherwise run
+      # `yarn cache dir` while the runner still has global yarn 1.22, which
+      # refuses a project pinned to yarn@4 via packageManager.
+      - name: Enable corepack
+        run: corepack enable
+
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-          cache: yarn
 
       - name: Decide the version
         id: version
@@ -212,14 +217,15 @@ jobs:
           # clone would have nothing to compute over.
           fetch-depth: 0
 
+      - name: Enable corepack
+        run: corepack enable
+
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
-          cache: yarn
 
       - name: Build and package
         run: |
-          corepack enable
           yarn install --immutable
           yarn package
 
