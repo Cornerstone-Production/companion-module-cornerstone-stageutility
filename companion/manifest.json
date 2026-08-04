@@ -5,7 +5,7 @@
 	"name": "cornerstone-stageutility",
 	"shortname": "Stage Utility",
 	"description": "Control and monitor Cornerstone Stage Utility — PCO Services Live, view-to-screen routing, mic RF/battery telemetry and captions — over its HTTP/SSE API on the LAN.",
-	"version": "1.2.1",
+	"version": "1.3.0-beta.1",
 	"license": "MIT",
 	"repository": "git+https://github.com/Cornerstone-Production/companion-module-cornerstone-stageutility.git",
 	"bugs": "https://github.com/Cornerstone-Production/companion-module-cornerstone-stageutility/issues",
