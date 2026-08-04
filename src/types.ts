@@ -167,6 +167,8 @@ export type StageUtilityFeedbacks = {
 		options: { metric: string | number; zone: string | number; prefix: string; suffix: string }
 	}
 	captions_idle: { type: 'boolean'; options: { seconds: number } }
+	signal_is: { type: 'boolean'; options: { name: string; value: string } }
+	signal_error: { type: 'boolean'; options: { name: string } }
 }
 
 /** The record v2's `InstanceBase` is parameterised on. */
@@ -176,4 +178,16 @@ export interface StageUtilityInstanceTypes {
 	actions: StageUtilityActions
 	feedbacks: StageUtilityFeedbacks
 	variables: Record<string, string | number | boolean | undefined>
+}
+
+/** One named signal published by a Stage Utility automation rule.
+ *
+ *  `error` sits alongside the value rather than replacing it: the app never clears
+ *  a route on failure, so the last good value stays readable while the error says
+ *  why it did not update. */
+export interface SignalStateDTO {
+	value: string
+	at: string
+	ruleId: string | null
+	error: string | null
 }

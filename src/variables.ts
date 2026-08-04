@@ -3,6 +3,15 @@ import type ModuleInstance from './main.js'
 export function UpdateVariableDefinitions(self: ModuleInstance): void {
 	// Per-zone people variables are dynamic — one set per zone the API reports.
 	// v2 takes an object keyed by variableId rather than an array of records.
+	// One pair per signal an automation rule has published. Dynamic, like the zone
+	// variables: the app decides which signals exist, and a Companion Trigger keys
+	// on whichever ones you use.
+	const signalVars: Record<string, { name: string }> = {}
+	for (const name of Object.keys(self.state.signals ?? {})) {
+		signalVars[`signal_${name}`] = { name: `Signal: ${name}` }
+		signalVars[`signal_${name}_error`] = { name: `Signal: ${name} (error, blank when healthy)` }
+	}
+
 	const zoneVars: Record<string, { name: string }> = {}
 	for (const [i] of (self.state.peopleCount?.zones ?? []).entries()) {
 		const n = i + 1
@@ -17,6 +26,7 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		people_updated: { name: 'People count last updated (local time)' },
 		people_zone_count: { name: 'People zone count' },
 		...zoneVars,
+		...signalVars,
 		plan_title: { name: 'Current plan title' },
 		series_title: { name: 'Current series title' },
 		service_type: { name: 'Service type' },
@@ -56,6 +66,12 @@ export function SetVariableValues(self: ModuleInstance): void {
 	const countdownSec = st.countdownSeconds()
 	const people = st.peopleCount
 
+	const signalValues: Record<string, string> = {}
+	for (const [name, sig] of Object.entries(st.signals ?? {})) {
+		signalValues[`signal_${name}`] = sig.value
+		signalValues[`signal_${name}_error`] = sig.error ?? ''
+	}
+
 	const peopleVars: Record<string, string> = {
 		people_attendance: people?.total.attendance != null ? String(people.total.attendance) : '',
 		people_occupancy: people?.total.occupancy != null ? String(people.total.occupancy) : '',
@@ -71,6 +87,7 @@ export function SetVariableValues(self: ModuleInstance): void {
 	})
 
 	self.setVariableValues({
+		...signalValues,
 		...peopleVars,
 		plan_title: stage?.planTitle ?? '',
 		series_title: stage?.planSeriesTitle ?? '',
