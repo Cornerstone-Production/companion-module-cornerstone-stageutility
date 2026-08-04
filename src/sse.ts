@@ -12,6 +12,7 @@ export const SSE_EVENTS = [
 	'prodcom:transcript',
 	'wireless:connections-changed',
 	'people:count',
+	'companion:signals',
 ] as const
 
 export type SseEventName = (typeof SSE_EVENTS)[number]

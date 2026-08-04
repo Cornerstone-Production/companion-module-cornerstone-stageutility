@@ -5,6 +5,7 @@ import type {
 	PeopleCountDTO,
 	PlanDTO,
 	PresetDTO,
+	SignalStateDTO,
 	ProPresenterStatusDTO,
 	ServiceTypeDTO,
 	StageStateDTO,
@@ -18,6 +19,10 @@ export class StateCache {
 	pcoLive: PcoLiveDTO | null = null
 	propresenter: ProPresenterStatusDTO | null = null
 	peopleCount: PeopleCountDTO | null = null
+
+	// Named signals from automation rules, keyed by signal name. Each becomes a
+	// $(stage:signal_<name>) variable a Companion Trigger can act on.
+	signals: Record<string, SignalStateDTO> = {}
 
 	// Enumeration lists for action dropdowns (fetched on connect + on change).
 	views: ViewDTO[] = []

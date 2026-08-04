@@ -16,6 +16,35 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 	const peopleZones = peopleZoneChoices(self.state)
 
 	self.setFeedbackDefinitions({
+		signal_is: {
+			name: 'Automation signal equals',
+			type: 'boolean',
+			defaultStyle: { bgcolor: GREEN, color: WHITE },
+			options: [
+				{ id: 'name', type: 'textinput', label: 'Signal name', default: 'dante-tb' },
+				{ id: 'value', type: 'textinput', label: 'Equals', default: '' },
+			],
+			callback: (fb) => {
+				const sig = self.state.signals?.[String(fb.options.name ?? '')]
+				return !!sig && sig.value === String(fb.options.value ?? '')
+			},
+		},
+
+		// The only way an operator learns a signal did not resolve — nobody was
+		// marked, two people were, or the matched slot has no entry. The app holds
+		// the previous route in every one of those cases, so without this the
+		// failure is completely silent.
+		signal_error: {
+			name: 'Automation signal failed to resolve',
+			type: 'boolean',
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			options: [{ id: 'name', type: 'textinput', label: 'Signal name', default: 'dante-tb' }],
+			callback: (fb) => {
+				const sig = self.state.signals?.[String(fb.options.name ?? '')]
+				return !!sig && !!sig.error
+			},
+		},
+
 		countdown_overtime: {
 			name: 'PCO countdown is in overtime',
 			type: 'boolean',
