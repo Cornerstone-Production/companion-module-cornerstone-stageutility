@@ -21,7 +21,7 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 			type: 'boolean',
 			defaultStyle: { bgcolor: GREEN, color: WHITE },
 			options: [
-				{ id: 'name', type: 'textinput', label: 'Signal name', default: 'dante-tb' },
+				{ id: 'name', type: 'textinput', label: 'Signal name', default: 'dante_tb' },
 				{ id: 'value', type: 'textinput', label: 'Equals', default: '' },
 			],
 			callback: (fb) => {
@@ -38,7 +38,7 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 			name: 'Automation signal failed to resolve',
 			type: 'boolean',
 			defaultStyle: { bgcolor: RED, color: WHITE },
-			options: [{ id: 'name', type: 'textinput', label: 'Signal name', default: 'dante-tb' }],
+			options: [{ id: 'name', type: 'textinput', label: 'Signal name', default: 'dante_tb' }],
 			callback: (fb) => {
 				const sig = self.state.signals?.[String(fb.options.name ?? '')]
 				return !!sig && !!sig.error
