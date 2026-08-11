@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@companion-module/base": "^2.1.2",
-    "eventsource": "^4.0.0"
+    "eventsource": "^4.1.1"
   },
   "devDependencies": {
     "@companion-module/tools": "^3.0.2",
