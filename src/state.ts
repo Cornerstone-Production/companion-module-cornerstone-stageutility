@@ -55,6 +55,28 @@ export class StateCache {
 		return Math.round((target - this.serverNowMs()) / 1000)
 	}
 
+	/**
+	 * Is a service actually live?
+	 *
+	 * PCO Services Live is the only signal here that means "a service is running":
+	 * `item` is a live item on the plan, driven by whoever is running Live in PCO.
+	 * `preservice` is the countdown BEFORE it starts -- a walk-in loop is not the
+	 * service -- and `none` is nothing at all.
+	 *
+	 * Deliberately not a stream or a recorder. Resi reports its ENCODER, which is
+	 * started for a soundcheck an hour early; OBS reports that OBS is recording.
+	 * Both answer a different question, and using either as "are we live" is what
+	 * makes an indicator lie.
+	 */
+	liveMode(): 'item' | 'preservice' | 'none' {
+		return this.pcoLive?.mode ?? 'none'
+	}
+
+	/** True while PCO Live is running an item. */
+	isServiceLive(): boolean {
+		return this.liveMode() === 'item'
+	}
+
 	/** True while a live item's countdown has passed zero. */
 	isOvertime(): boolean {
 		const s = this.countdownSeconds()

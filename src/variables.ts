@@ -35,6 +35,9 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		next_item: { name: 'ProPresenter next item' },
 		slide_index: { name: 'Slide index' },
 		slide_count: { name: 'Slide count' },
+		service_live: { name: 'Service is live (yes/no)' },
+		live_mode: { name: 'PCO Live mode (item/preservice/none)' },
+		live_item: { name: 'Live item title (from the PCO plan order)' },
 		countdown_label: { name: 'PCO countdown label' },
 		countdown_seconds: { name: 'PCO countdown (mm:ss)' },
 		mics_online: { name: 'Mics online' },
@@ -97,6 +100,12 @@ export function SetVariableValues(self: ModuleInstance): void {
 		next_item: pp?.nextItem ?? '',
 		slide_index: pp?.slideIndex != null ? String(pp.slideIndex + 1) : '',
 		slide_count: pp?.slideCount != null ? String(pp.slideCount) : '',
+		// PCO Services Live, not a stream or a recorder: an encoder started for a
+		// soundcheck is not a service, and neither is OBS recording. See
+		// state.liveMode().
+		service_live: st.isServiceLive() ? 'yes' : 'no',
+		live_mode: st.liveMode(),
+		live_item: live?.currentItemTitle ?? live?.label ?? '',
 		countdown_label: live?.label ?? '',
 		countdown_seconds: countdownSec === null ? '' : formatDuration(countdownSec),
 		mics_online: String(st.onlineChannels().length),
