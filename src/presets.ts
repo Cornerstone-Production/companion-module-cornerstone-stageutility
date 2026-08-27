@@ -9,6 +9,7 @@ const v = (name: string) => `$(${ID}:${name})`
 const RED = combineRgb(200, 30, 30)
 const YELLOW = combineRgb(220, 180, 0)
 const ORANGE = combineRgb(220, 120, 0)
+const GREEN = combineRgb(0, 150, 70)
 const WHITE = combineRgb(255, 255, 255)
 const BLACK = combineRgb(0, 0, 0)
 const DARK = combineRgb(0, 0, 0)
@@ -27,6 +28,25 @@ export function UpdatePresets(self: ModuleInstance): void {
 			},
 			steps: [{ down: [{ actionId: 'live_next', options: {} }], up: [] }],
 			feedbacks: [{ feedbackId: 'countdown_overtime', options: {}, style: { bgcolor: RED, color: WHITE } }],
+		},
+		// A lamp, not a button: it does nothing on press. "Is a service live" is
+		// something an operator glances at, and the honest source for it is PCO
+		// Services Live -- not a stream or a recorder, which answer different
+		// questions and are on well before a service starts.
+		service_live: {
+			type: 'simple',
+			name: 'Service is live (indicator)',
+			style: {
+				text: `SERVICE\n${v('live_mode')}`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [],
+			feedbacks: [
+				{ feedbackId: 'service_is_live', options: { state: 'item' }, style: { bgcolor: GREEN, color: WHITE } },
+			],
 		},
 		live_previous: {
 			type: 'simple',
