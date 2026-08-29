@@ -9,10 +9,13 @@ import { SetVariableValues, UpdateVariableDefinitions } from './variables.js'
 import { UpdatePresets } from './presets.js'
 import { UpgradeScripts } from './upgrades.js'
 import type {
+	ObsStatusDTO,
 	PcoLiveDTO,
 	PeopleCountDTO,
 	ProPresenterStatusDTO,
+	ReaperStatusDTO,
 	StageStateDTO,
+	StreamStatusDTO,
 	TranscriptLineDTO,
 	StageUtilityInstanceTypes,
 } from './types.js'
@@ -30,6 +33,10 @@ const ALL_FEEDBACKS = [
 	'captions_idle',
 	'occupancy_over',
 	'people_count_text',
+	'obs_active',
+	'reaper_recording',
+	'stream_live',
+	'integration_disconnected',
 ] as const
 
 export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTypes> {
@@ -118,18 +125,37 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 
 	/** Pull every list + live snapshot into the cache. */
 	private async hydrate(): Promise<void> {
-		const [stage, views, outputs, serviceTypes, presets, channels, pcoLive, propresenter, peopleCount] =
-			await Promise.all([
-				this.api.getState(),
-				this.api.getViews(),
-				this.api.getOutputs(),
-				this.api.getServiceTypes(),
-				this.api.getPresets(),
-				this.api.getChannels(),
-				this.api.getPcoLive().catch(() => null),
-				this.api.getProPresenter().catch(() => null),
-				this.api.getPeopleCount().catch(() => null),
-			])
+		const [
+			stage,
+			views,
+			outputs,
+			serviceTypes,
+			presets,
+			channels,
+			pcoLive,
+			propresenter,
+			peopleCount,
+			obs,
+			reaper,
+			resi,
+			youtube,
+		] = await Promise.all([
+			this.api.getState(),
+			this.api.getViews(),
+			this.api.getOutputs(),
+			this.api.getServiceTypes(),
+			this.api.getPresets(),
+			this.api.getChannels(),
+			this.api.getPcoLive().catch(() => null),
+			this.api.getProPresenter().catch(() => null),
+			this.api.getPeopleCount().catch(() => null),
+			// Status endpoints an older server may not have: a missing one leaves
+			// that integration's cache as it was rather than failing the hydrate.
+			this.api.getObs().catch(() => null),
+			this.api.getReaper().catch(() => null),
+			this.api.getResi().catch(() => null),
+			this.api.getYouTube().catch(() => null),
+		])
 		this.state.stage = stage
 		this.state.views = views
 		this.state.outputs = outputs
@@ -139,6 +165,10 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 		if (pcoLive) this.applyPcoLive(pcoLive)
 		if (propresenter) this.state.propresenter = propresenter
 		if (peopleCount) this.state.peopleCount = peopleCount
+		if (obs) this.state.obs = obs
+		if (reaper) this.state.reaper = reaper
+		if (resi) this.state.resi = resi
+		if (youtube) this.state.youtube = youtube
 		if (stage.serviceTypeId) {
 			this.state.plans = await this.api.getPlans(stage.serviceTypeId).catch(() => [])
 		}
@@ -212,6 +242,26 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 				this.checkFeedbacks('occupancy_over', 'people_count_text')
 				break
 			}
+			case 'obs:status':
+				this.state.obs = data as ObsStatusDTO
+				SetVariableValues(this)
+				this.checkFeedbacks('obs_active', 'integration_disconnected')
+				break
+			case 'reaper:status':
+				this.state.reaper = data as ReaperStatusDTO
+				SetVariableValues(this)
+				this.checkFeedbacks('reaper_recording', 'integration_disconnected')
+				break
+			case 'resi:status':
+				this.state.resi = data as StreamStatusDTO
+				SetVariableValues(this)
+				this.checkFeedbacks('stream_live', 'integration_disconnected')
+				break
+			case 'youtube:status':
+				this.state.youtube = data as StreamStatusDTO
+				SetVariableValues(this)
+				this.checkFeedbacks('stream_live', 'integration_disconnected')
+				break
 			case 'wireless:connections-changed':
 				void this.api
 					.getChannels()

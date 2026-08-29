@@ -118,6 +118,39 @@ export interface PeopleCountDTO {
 	zones: PeopleZoneCountDTO[]
 }
 
+// Live OBS Studio output state (GET /api/obs/status, channel obs:status).
+// `connected` is the obs-websocket link; the rest are OBS's outputs.
+export interface ObsStatusDTO {
+	connected: boolean
+	recording: boolean
+	streaming: boolean
+	virtualCam: boolean
+	/** "HH:MM:SS" record duration while recording, else null. */
+	recordTimecode: string | null
+}
+
+// Live REAPER transport state (GET /api/reaper/status, channel reaper:status).
+// `connected` is the web-interface HTTP link.
+export interface ReaperStatusDTO {
+	connected: boolean
+	recording: boolean
+	/** REAPER's position string (e.g. "0:02.123"), or null. */
+	positionString: string | null
+}
+
+// One streaming platform (GET /api/resi/status, /api/youtube/status; channels
+// resi:status and youtube:status). `connected` is the link to the platform's
+// API, `live` is whether it is actually broadcasting — mid-service those are
+// different problems. `startedAt` is null when the platform will not say since
+// when, so elapsed is genuinely unknown rather than zero.
+export interface StreamStatusDTO {
+	connected: boolean
+	live: boolean
+	startedAt: string | null
+	/** Encoder or broadcast name — what it is streaming. */
+	detail: string | null
+}
+
 /**
  * What this instance looks like to the SDK.
  *
@@ -167,6 +200,10 @@ export type StageUtilityFeedbacks = {
 		options: { metric: string | number; zone: string | number; prefix: string; suffix: string }
 	}
 	captions_idle: { type: 'boolean'; options: { seconds: number } }
+	obs_active: { type: 'boolean'; options: { mode: string | number } }
+	reaper_recording: { type: 'boolean'; options: Record<string, never> }
+	stream_live: { type: 'boolean'; options: { platform: string | number } }
+	integration_disconnected: { type: 'boolean'; options: { source: string | number } }
 }
 
 /** The record v2's `InstanceBase` is parameterised on. */

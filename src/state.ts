@@ -1,13 +1,16 @@
 import type {
 	DeviceStatusDTO,
+	ObsStatusDTO,
 	OutputDTO,
 	PcoLiveDTO,
 	PeopleCountDTO,
 	PlanDTO,
 	PresetDTO,
 	ProPresenterStatusDTO,
+	ReaperStatusDTO,
 	ServiceTypeDTO,
 	StageStateDTO,
+	StreamStatusDTO,
 	ViewDTO,
 } from './types.js'
 
@@ -18,6 +21,10 @@ export class StateCache {
 	pcoLive: PcoLiveDTO | null = null
 	propresenter: ProPresenterStatusDTO | null = null
 	peopleCount: PeopleCountDTO | null = null
+	obs: ObsStatusDTO | null = null
+	reaper: ReaperStatusDTO | null = null
+	resi: StreamStatusDTO | null = null
+	youtube: StreamStatusDTO | null = null
 
 	// Enumeration lists for action dropdowns (fetched on connect + on change).
 	views: ViewDTO[] = []
@@ -54,6 +61,15 @@ export class StateCache {
 	isOvertime(): boolean {
 		const s = this.countdownSeconds()
 		return this.pcoLive?.mode === 'item' && s !== null && s < 0
+	}
+
+	/** Seconds a platform has been live, or null when it is not live or the
+	 *  platform never said when it started. */
+	streamElapsedSeconds(stream: StreamStatusDTO | null): number | null {
+		if (!stream?.live || !stream.startedAt) return null
+		const started = Date.parse(stream.startedAt)
+		if (!Number.isFinite(started)) return null
+		return Math.max(0, Math.round((this.serverNowMs() - started) / 1000))
 	}
 
 	onlineChannels(): DeviceStatusDTO[] {
