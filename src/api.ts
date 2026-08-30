@@ -1,14 +1,17 @@
 import type {
 	DeviceStatusDTO,
 	HealthDTO,
+	ObsStatusDTO,
 	OutputDTO,
 	PcoLiveDTO,
 	PeopleCountDTO,
 	PlanDTO,
 	PresetDTO,
 	ProPresenterStatusDTO,
+	ReaperStatusDTO,
 	ServiceTypeDTO,
 	StageStateDTO,
+	StreamStatusDTO,
 	ViewDTO,
 } from './types.js'
 
@@ -64,6 +67,18 @@ export class ApiClient {
 	}
 	async getPeopleCount(): Promise<PeopleCountDTO> {
 		return this.request('GET', '/api/people/count')
+	}
+	async getObs(): Promise<ObsStatusDTO> {
+		return this.request('GET', '/api/obs/status')
+	}
+	async getReaper(): Promise<ReaperStatusDTO> {
+		return this.request('GET', '/api/reaper/status')
+	}
+	async getResi(): Promise<StreamStatusDTO> {
+		return this.request('GET', '/api/resi/status')
+	}
+	async getYouTube(): Promise<StreamStatusDTO> {
+		return this.request('GET', '/api/youtube/status')
 	}
 
 	// ── Control verbs (Companion actions) ──

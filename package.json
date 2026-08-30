@@ -28,7 +28,7 @@
     "eventsource": "^4.0.0"
   },
   "devDependencies": {
-    "@companion-module/tools": "^3.0.2",
+    "@companion-module/tools": "^3.1.0",
     "@types/node": "^26",
     "eslint": "^10",
     "husky": "^9.1.7",

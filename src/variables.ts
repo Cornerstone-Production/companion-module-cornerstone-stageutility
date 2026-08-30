@@ -47,7 +47,32 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		last_caption_text: { name: 'Last caption text' },
 		last_caption_speaker: { name: 'Last caption speaker' },
 		last_synced: { name: 'Last synced (local time)' },
+		obs_connected: { name: 'OBS connected (yes/no)' },
+		obs_recording: { name: 'OBS recording (yes/no)' },
+		obs_streaming: { name: 'OBS streaming (yes/no)' },
+		obs_virtual_cam: { name: 'OBS virtual camera (yes/no)' },
+		obs_timecode: { name: 'OBS record duration (HH:MM:SS)' },
+		reaper_connected: { name: 'REAPER connected (yes/no)' },
+		reaper_recording: { name: 'REAPER recording (yes/no)' },
+		reaper_position: { name: 'REAPER transport position' },
+		resi_connected: { name: 'Resi connected (yes/no)' },
+		resi_live: { name: 'Resi live (yes/no)' },
+		resi_detail: { name: 'Resi encoder / stream name' },
+		resi_elapsed: { name: 'Resi live for (mm:ss)' },
+		youtube_connected: { name: 'YouTube connected (yes/no)' },
+		youtube_live: { name: 'YouTube live (yes/no)' },
+		youtube_detail: { name: 'YouTube broadcast name' },
+		youtube_elapsed: { name: 'YouTube live for (mm:ss)' },
 	})
+}
+
+const yesNo = (value: boolean | undefined): string => (value ? 'yes' : 'no')
+
+/** REAPER reports "0:02.123"; whole seconds is what a button has room for. */
+function trimMillis(position: string | null | undefined): string {
+	const raw = position ?? ''
+	const dot = raw.indexOf('.')
+	return dot === -1 ? raw : raw.slice(0, dot)
 }
 
 function formatDuration(totalSec: number): string {
@@ -68,6 +93,12 @@ export function SetVariableValues(self: ModuleInstance): void {
 	const battery = st.lowestBattery()
 	const countdownSec = st.countdownSeconds()
 	const people = st.peopleCount
+	const obs = st.obs
+	const reaper = st.reaper
+	const resi = st.resi
+	const youtube = st.youtube
+	const resiElapsed = st.streamElapsedSeconds(resi)
+	const youtubeElapsed = st.streamElapsedSeconds(youtube)
 
 	const signalValues: Record<string, string> = {}
 	for (const [name, sig] of Object.entries(st.signals ?? {})) {
@@ -115,5 +146,21 @@ export function SetVariableValues(self: ModuleInstance): void {
 		last_caption_text: st.lastCaptionText,
 		last_caption_speaker: st.lastCaptionSpeaker,
 		last_synced: stage?.lastRefreshedAt ? new Date(stage.lastRefreshedAt).toLocaleTimeString() : '',
+		obs_connected: yesNo(obs?.connected),
+		obs_recording: yesNo(obs?.recording),
+		obs_streaming: yesNo(obs?.streaming),
+		obs_virtual_cam: yesNo(obs?.virtualCam),
+		obs_timecode: obs?.recording ? (obs.recordTimecode ?? '') : '',
+		reaper_connected: yesNo(reaper?.connected),
+		reaper_recording: yesNo(reaper?.recording),
+		reaper_position: trimMillis(reaper?.positionString),
+		resi_connected: yesNo(resi?.connected),
+		resi_live: yesNo(resi?.live),
+		resi_detail: resi?.detail ?? '',
+		resi_elapsed: resiElapsed === null ? '' : formatDuration(resiElapsed),
+		youtube_connected: yesNo(youtube?.connected),
+		youtube_live: yesNo(youtube?.live),
+		youtube_detail: youtube?.detail ?? '',
+		youtube_elapsed: youtubeElapsed === null ? '' : formatDuration(youtubeElapsed),
 	})
 }

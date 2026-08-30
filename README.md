@@ -6,7 +6,8 @@ church stage-monitor server.
 
 Drive PCO Services Live, route views onto screens, black out an output, reload
 displays, and read mic RF and battery, the PCO countdown, ProPresenter status,
-captions and people counts from a Stream Deck.
+captions, people counts and OBS, REAPER, Resi and YouTube status from a Stream
+Deck.
 
 The module connects to Stage Utility over its HTTP and SSE API on the local
 network. There is no authentication — the API is LAN-only by design.

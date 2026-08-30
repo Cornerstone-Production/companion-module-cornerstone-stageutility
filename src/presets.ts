@@ -122,6 +122,41 @@ export function UpdatePresets(self: ModuleInstance): void {
 			steps: [{ down: [], up: [] }],
 			feedbacks: [{ feedbackId: 'propresenter_disconnected', options: {}, style: { bgcolor: RED, color: WHITE } }],
 		},
+		obs_recording: {
+			type: 'simple',
+			name: 'OBS recording (with duration)',
+			style: {
+				text: `OBS\\n${v('obs_timecode')}`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [{ down: [], up: [] }],
+			feedbacks: [{ feedbackId: 'obs_active', options: { mode: 'recording' }, style: { bgcolor: RED, color: WHITE } }],
+		},
+		reaper_recording: {
+			type: 'simple',
+			name: 'REAPER recording (with position)',
+			style: {
+				text: `REAPER\\n${v('reaper_position')}`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [{ down: [], up: [] }],
+			feedbacks: [{ feedbackId: 'reaper_recording', options: {}, style: { bgcolor: RED, color: WHITE } }],
+		},
+		stream_live: {
+			type: 'simple',
+			name: 'On air (any streaming platform)',
+			style: { text: 'ON\\nAIR', size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
+			steps: [{ down: [], up: [] }],
+			feedbacks: [
+				{ feedbackId: 'stream_live', options: { platform: ANY_ID }, style: { bgcolor: GREEN, color: WHITE } },
+			],
+		},
 	}
 
 	// v2 takes the grouping separately: sections reference preset ids, rather
@@ -133,6 +168,11 @@ export function UpdatePresets(self: ModuleInstance): void {
 			id: 'monitoring_alarms',
 			name: 'Monitoring & Alarms',
 			definitions: ['battery_alarm', 'mic_offline', 'propresenter_status'],
+		},
+		{
+			id: 'recording_streaming',
+			name: 'Recording & Streaming',
+			definitions: ['obs_recording', 'reaper_recording', 'stream_live'],
 		},
 	]
 	self.setPresetDefinitions(sections, presets)

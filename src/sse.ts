@@ -3,7 +3,10 @@ import { EventSource } from 'eventsource'
 
 // Event names emitted by Stage Utility on GET /api/events that this module cares
 // about. The app also emits integrations:state-changed / display:refresh /
-// update:status, which we intentionally ignore.
+// update:status, which we intentionally ignore: the first carries connection
+// and config state for the settings panel, while the live status a button
+// needs — is OBS rolling, is Resi on air — arrives on the per-integration
+// channels below.
 export const SSE_EVENTS = [
 	'server:hello',
 	'stage:state-changed',
@@ -13,6 +16,10 @@ export const SSE_EVENTS = [
 	'wireless:connections-changed',
 	'people:count',
 	'companion:signals',
+	'obs:status',
+	'reaper:status',
+	'resi:status',
+	'youtube:status',
 ] as const
 
 export type SseEventName = (typeof SSE_EVENTS)[number]
