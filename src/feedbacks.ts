@@ -16,6 +16,69 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 	const peopleZones = peopleZoneChoices(self.state)
 
 	self.setFeedbackDefinitions({
+		signal_is: {
+			name: 'Automation signal equals',
+			type: 'boolean',
+			defaultStyle: { bgcolor: GREEN, color: WHITE },
+			options: [
+				{ id: 'name', type: 'textinput', label: 'Signal name', default: 'dante_tb' },
+				{ id: 'value', type: 'textinput', label: 'Equals', default: '' },
+			],
+			callback: (fb) => {
+				const sig = self.state.signals?.[String(fb.options.name ?? '')]
+				return !!sig && sig.value === String(fb.options.value ?? '')
+			},
+		},
+
+		// The only way an operator learns a signal did not resolve — nobody was
+		// marked, two people were, or the matched slot has no entry. The app holds
+		// the previous route in every one of those cases, so without this the
+		// failure is completely silent.
+		signal_error: {
+			name: 'Automation signal failed to resolve',
+			type: 'boolean',
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			options: [{ id: 'name', type: 'textinput', label: 'Signal name', default: 'dante_tb' }],
+			callback: (fb) => {
+				const sig = self.state.signals?.[String(fb.options.name ?? '')]
+				return !!sig && !!sig.error
+			},
+		},
+
+		// The question every other "live" light in this module answers badly. Resi
+		// reports its ENCODER, which is started for a soundcheck an hour early;
+		// OBS reports that OBS is recording. Only PCO Services Live knows whether
+		// a SERVICE is running, because that is the thing somebody is running.
+		service_is_live: {
+			name: 'Service is live (PCO Live)',
+			type: 'boolean',
+			defaultStyle: { bgcolor: GREEN, color: WHITE },
+			options: [
+				{
+					id: 'state',
+					type: 'dropdown',
+					label: 'Counts as live',
+					default: 'item',
+					choices: [
+						{ id: 'item', label: 'Live now — an item is running' },
+						{ id: 'preservice', label: 'Pre-service only — counting down to the start' },
+						{ id: 'any', label: 'Either — live or counting down' },
+					],
+				},
+			],
+			callback: (fb) => {
+				const mode = self.state.liveMode()
+				switch (String(fb.options.state ?? 'item')) {
+					case 'preservice':
+						return mode === 'preservice'
+					case 'any':
+						return mode !== 'none'
+					default:
+						return mode === 'item'
+				}
+			},
+		},
+
 		countdown_overtime: {
 			name: 'PCO countdown is in overtime',
 			type: 'boolean',

@@ -14,6 +14,7 @@ import type {
 	PeopleCountDTO,
 	ProPresenterStatusDTO,
 	ReaperStatusDTO,
+	SignalStateDTO,
 	StageStateDTO,
 	StreamStatusDTO,
 	TranscriptLineDTO,
@@ -240,6 +241,16 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 				if (people.zones.length !== prevZones) this.updateVariableDefinitions()
 				SetVariableValues(this)
 				this.checkFeedbacks('occupancy_over', 'people_count_text')
+				break
+			}
+			case 'companion:signals': {
+				const next = data as Record<string, SignalStateDTO>
+				const changed = Object.keys(next).length !== Object.keys(this.state.signals).length
+				this.state.signals = next
+				// A new signal name needs a new variable declared before it can hold a value.
+				if (changed) this.updateVariableDefinitions()
+				SetVariableValues(this)
+				this.checkFeedbacks('signal_is', 'signal_error')
 				break
 			}
 			case 'obs:status':

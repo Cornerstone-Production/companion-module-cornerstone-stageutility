@@ -80,6 +80,15 @@ export interface PcoLiveDTO {
 	lengthSec: number | null
 	targetAt: string | null
 	serverNow: string
+	/** Current item title from the PCO PLAN order (authoritative), or null.
+	 *
+	 *  This copy of the DTO had drifted behind the app's: the server has sent this
+	 *  and `nextItemTitle` for a while. Only the fields this module reads are
+	 *  named here -- see the app's main/types/live.ts for the full shape -- but a
+	 *  field that exists on the wire and not here is one nothing can use. */
+	currentItemTitle?: string | null
+	/** Next non-header item title from the PCO plan order, or null. */
+	nextItemTitle?: string | null
 }
 
 export interface ProTimerDTO {
@@ -187,6 +196,7 @@ export type StageUtilityActions = {
 
 /** Options carried by each feedback id, and the kind of feedback it is. */
 export type StageUtilityFeedbacks = {
+	service_is_live: { type: 'boolean'; options: { state: string } }
 	countdown_overtime: { type: 'boolean'; options: Record<string, never> }
 	mic_battery_low: { type: 'boolean'; options: { threshold: number; channel: string | number } }
 	mic_offline: { type: 'boolean'; options: { channel: string | number } }
@@ -200,6 +210,8 @@ export type StageUtilityFeedbacks = {
 		options: { metric: string | number; zone: string | number; prefix: string; suffix: string }
 	}
 	captions_idle: { type: 'boolean'; options: { seconds: number } }
+	signal_is: { type: 'boolean'; options: { name: string; value: string } }
+	signal_error: { type: 'boolean'; options: { name: string } }
 	obs_active: { type: 'boolean'; options: { mode: string | number } }
 	reaper_recording: { type: 'boolean'; options: Record<string, never> }
 	stream_live: { type: 'boolean'; options: { platform: string | number } }
@@ -213,4 +225,16 @@ export interface StageUtilityInstanceTypes {
 	actions: StageUtilityActions
 	feedbacks: StageUtilityFeedbacks
 	variables: Record<string, string | number | boolean | undefined>
+}
+
+/** One named signal published by a Stage Utility automation rule.
+ *
+ *  `error` sits alongside the value rather than replacing it: the app never clears
+ *  a route on failure, so the last good value stays readable while the error says
+ *  why it did not update. */
+export interface SignalStateDTO {
+	value: string
+	at: string
+	ruleId: string | null
+	error: string | null
 }

@@ -15,6 +15,7 @@ export const SSE_EVENTS = [
 	'prodcom:transcript',
 	'wireless:connections-changed',
 	'people:count',
+	'companion:signals',
 	'obs:status',
 	'reaper:status',
 	'resi:status',

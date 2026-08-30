@@ -29,6 +29,25 @@ export function UpdatePresets(self: ModuleInstance): void {
 			steps: [{ down: [{ actionId: 'live_next', options: {} }], up: [] }],
 			feedbacks: [{ feedbackId: 'countdown_overtime', options: {}, style: { bgcolor: RED, color: WHITE } }],
 		},
+		// A lamp, not a button: it does nothing on press. "Is a service live" is
+		// something an operator glances at, and the honest source for it is PCO
+		// Services Live -- not a stream or a recorder, which answer different
+		// questions and are on well before a service starts.
+		service_live: {
+			type: 'simple',
+			name: 'Service is live (indicator)',
+			style: {
+				text: `SERVICE\n${v('live_mode')}`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [],
+			feedbacks: [
+				{ feedbackId: 'service_is_live', options: { state: 'item' }, style: { bgcolor: GREEN, color: WHITE } },
+			],
+		},
 		live_previous: {
 			type: 'simple',
 			name: 'PCO Live: Previous',

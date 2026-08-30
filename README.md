@@ -17,6 +17,9 @@ variable reference, and is what Companion shows in-app.
 
 ## Install
 
+Requires **Companion 4.3.0 or newer** — the module targets the v2 connection API
+added in that release, and will not start on anything older.
+
 Download the `.tgz` from the
 [latest release](https://github.com/Cornerstone-Production/companion-module-cornerstone-stageutility/releases)
 and add it to Companion as a module.
