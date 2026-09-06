@@ -16,6 +16,69 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 	const peopleZones = peopleZoneChoices(self.state)
 
 	self.setFeedbackDefinitions({
+		signal_is: {
+			name: 'Automation signal equals',
+			type: 'boolean',
+			defaultStyle: { bgcolor: GREEN, color: WHITE },
+			options: [
+				{ id: 'name', type: 'textinput', label: 'Signal name', default: 'dante_tb' },
+				{ id: 'value', type: 'textinput', label: 'Equals', default: '' },
+			],
+			callback: (fb) => {
+				const sig = self.state.signals?.[String(fb.options.name ?? '')]
+				return !!sig && sig.value === String(fb.options.value ?? '')
+			},
+		},
+
+		// The only way an operator learns a signal did not resolve — nobody was
+		// marked, two people were, or the matched slot has no entry. The app holds
+		// the previous route in every one of those cases, so without this the
+		// failure is completely silent.
+		signal_error: {
+			name: 'Automation signal failed to resolve',
+			type: 'boolean',
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			options: [{ id: 'name', type: 'textinput', label: 'Signal name', default: 'dante_tb' }],
+			callback: (fb) => {
+				const sig = self.state.signals?.[String(fb.options.name ?? '')]
+				return !!sig && !!sig.error
+			},
+		},
+
+		// The question every other "live" light in this module answers badly. Resi
+		// reports its ENCODER, which is started for a soundcheck an hour early;
+		// OBS reports that OBS is recording. Only PCO Services Live knows whether
+		// a SERVICE is running, because that is the thing somebody is running.
+		service_is_live: {
+			name: 'Service is live (PCO Live)',
+			type: 'boolean',
+			defaultStyle: { bgcolor: GREEN, color: WHITE },
+			options: [
+				{
+					id: 'state',
+					type: 'dropdown',
+					label: 'Counts as live',
+					default: 'item',
+					choices: [
+						{ id: 'item', label: 'Live now — an item is running' },
+						{ id: 'preservice', label: 'Pre-service only — counting down to the start' },
+						{ id: 'any', label: 'Either — live or counting down' },
+					],
+				},
+			],
+			callback: (fb) => {
+				const mode = self.state.liveMode()
+				switch (String(fb.options.state ?? 'item')) {
+					case 'preservice':
+						return mode === 'preservice'
+					case 'any':
+						return mode !== 'none'
+					default:
+						return mode === 'item'
+				}
+			},
+		},
+
 		countdown_overtime: {
 			name: 'PCO countdown is in overtime',
 			type: 'boolean',
@@ -134,6 +197,91 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				return { text: `${prefix}${value ?? '—'}${suffix}` }
 			},
 		},
+		obs_active: {
+			name: 'OBS is recording / streaming / on virtual cam',
+			type: 'boolean',
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			options: [
+				{
+					id: 'mode',
+					type: 'dropdown',
+					label: 'Output',
+					choices: [
+						{ id: 'recording', label: 'Recording' },
+						{ id: 'streaming', label: 'Streaming' },
+						{ id: 'virtualcam', label: 'Virtual camera' },
+					],
+					default: 'recording',
+				},
+			],
+			callback: (fb) => {
+				const obs = self.state.obs
+				if (!obs) return false
+				if (fb.options.mode === 'streaming') return obs.streaming
+				if (fb.options.mode === 'virtualcam') return obs.virtualCam
+				return obs.recording
+			},
+		},
+		reaper_recording: {
+			name: 'REAPER is recording',
+			type: 'boolean',
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			options: [],
+			callback: () => self.state.reaper?.recording === true,
+		},
+		stream_live: {
+			// Green, not red: red is what a recorder means by rolling, and a
+			// wall carrying both wants exactly one red.
+			name: 'Streaming platform is live',
+			type: 'boolean',
+			defaultStyle: { bgcolor: GREEN, color: WHITE },
+			options: [
+				{
+					id: 'platform',
+					type: 'dropdown',
+					label: 'Platform',
+					choices: [
+						{ id: ANY_ID, label: 'Any platform' },
+						{ id: 'resi', label: 'Resi' },
+						{ id: 'youtube', label: 'YouTube' },
+					],
+					default: ANY_ID,
+				},
+			],
+			callback: (fb) => {
+				const { resi, youtube } = self.state
+				if (fb.options.platform === 'resi') return resi?.live === true
+				if (fb.options.platform === 'youtube') return youtube?.live === true
+				return resi?.live === true || youtube?.live === true
+			},
+		},
+		integration_disconnected: {
+			// One source per button, deliberately: an integration nobody has set
+			// up reports "not connected" forever, so an "any" option would light
+			// permanently on a site that only runs one of the four.
+			name: 'Recorder / streaming platform disconnected',
+			type: 'boolean',
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			options: [
+				{
+					id: 'source',
+					type: 'dropdown',
+					label: 'Source',
+					choices: [
+						{ id: 'obs', label: 'OBS' },
+						{ id: 'reaper', label: 'REAPER' },
+						{ id: 'resi', label: 'Resi' },
+						{ id: 'youtube', label: 'YouTube' },
+					],
+					default: 'obs',
+				},
+			],
+			callback: (fb) => {
+				const { obs, reaper, resi, youtube } = self.state
+				const status = { obs, reaper, resi, youtube }[String(fb.options.source)] ?? null
+				return status !== null && !status.connected
+			},
+		},
 		captions_idle: {
 			name: 'Captions idle (no recent line)',
 			type: 'boolean',
@@ -142,6 +290,24 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 			callback: (fb) => {
 				if (self.state.lastCaptionAt === 0) return true
 				return Date.now() - self.state.lastCaptionAt > Number(fb.options.seconds) * 1000
+			},
+		},
+		pvp_playing: {
+			name: 'ProVideoPlayer now-layer is playing a video',
+			type: 'boolean',
+			defaultStyle: { bgcolor: GREEN, color: WHITE },
+			options: [],
+			callback: () => self.state.pvpBadge() === 'playing',
+		},
+		pvp_remaining_under: {
+			name: 'ProVideoPlayer remaining time at or under threshold',
+			type: 'boolean',
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			options: [{ id: 'seconds', type: 'number', label: 'Seconds', default: 30, min: 0, max: 3600 }],
+			callback: (fb) => {
+				if (self.state.pvpBadge() !== 'playing') return false
+				const progress = self.state.pvpProgress()
+				return !!progress && progress.remainingSec <= Number(fb.options.seconds)
 			},
 		},
 	})

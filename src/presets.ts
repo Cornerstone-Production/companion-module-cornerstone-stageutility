@@ -9,6 +9,7 @@ const v = (name: string) => `$(${ID}:${name})`
 const RED = combineRgb(200, 30, 30)
 const YELLOW = combineRgb(220, 180, 0)
 const ORANGE = combineRgb(220, 120, 0)
+const GREEN = combineRgb(0, 150, 70)
 const WHITE = combineRgb(255, 255, 255)
 const BLACK = combineRgb(0, 0, 0)
 const DARK = combineRgb(0, 0, 0)
@@ -27,6 +28,25 @@ export function UpdatePresets(self: ModuleInstance): void {
 			},
 			steps: [{ down: [{ actionId: 'live_next', options: {} }], up: [] }],
 			feedbacks: [{ feedbackId: 'countdown_overtime', options: {}, style: { bgcolor: RED, color: WHITE } }],
+		},
+		// A lamp, not a button: it does nothing on press. "Is a service live" is
+		// something an operator glances at, and the honest source for it is PCO
+		// Services Live -- not a stream or a recorder, which answer different
+		// questions and are on well before a service starts.
+		service_live: {
+			type: 'simple',
+			name: 'Service is live (indicator)',
+			style: {
+				text: `SERVICE\n${v('live_mode')}`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [],
+			feedbacks: [
+				{ feedbackId: 'service_is_live', options: { state: 'item' }, style: { bgcolor: GREEN, color: WHITE } },
+			],
 		},
 		live_previous: {
 			type: 'simple',
@@ -102,6 +122,69 @@ export function UpdatePresets(self: ModuleInstance): void {
 			steps: [{ down: [], up: [] }],
 			feedbacks: [{ feedbackId: 'propresenter_disconnected', options: {}, style: { bgcolor: RED, color: WHITE } }],
 		},
+		obs_recording: {
+			type: 'simple',
+			name: 'OBS recording (with duration)',
+			style: {
+				text: `OBS\\n${v('obs_timecode')}`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [{ down: [], up: [] }],
+			feedbacks: [{ feedbackId: 'obs_active', options: { mode: 'recording' }, style: { bgcolor: RED, color: WHITE } }],
+		},
+		reaper_recording: {
+			type: 'simple',
+			name: 'REAPER recording (with position)',
+			style: {
+				text: `REAPER\\n${v('reaper_position')}`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [{ down: [], up: [] }],
+			feedbacks: [{ feedbackId: 'reaper_recording', options: {}, style: { bgcolor: RED, color: WHITE } }],
+		},
+		stream_live: {
+			type: 'simple',
+			name: 'On air (any streaming platform)',
+			style: { text: 'ON\\nAIR', size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
+			steps: [{ down: [], up: [] }],
+			feedbacks: [
+				{ feedbackId: 'stream_live', options: { platform: ANY_ID }, style: { bgcolor: GREEN, color: WHITE } },
+			],
+		},
+		pvp_now_playing: {
+			type: 'simple',
+			name: 'PVP now playing (with remaining)',
+			style: {
+				text: `PVP\\n${v('pvp_remaining')}`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [{ down: [], up: [] }],
+			feedbacks: [{ feedbackId: 'pvp_playing', options: {}, style: { bgcolor: GREEN, color: WHITE } }],
+		},
+		pvp_remaining_alarm: {
+			type: 'simple',
+			name: 'PVP remaining time alarm',
+			style: {
+				text: `PVP\\n${v('pvp_remaining')}`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [{ down: [], up: [] }],
+			feedbacks: [
+				{ feedbackId: 'pvp_remaining_under', options: { seconds: 30 }, style: { bgcolor: RED, color: WHITE } },
+			],
+		},
 	}
 
 	// v2 takes the grouping separately: sections reference preset ids, rather
@@ -113,6 +196,16 @@ export function UpdatePresets(self: ModuleInstance): void {
 			id: 'monitoring_alarms',
 			name: 'Monitoring & Alarms',
 			definitions: ['battery_alarm', 'mic_offline', 'propresenter_status'],
+		},
+		{
+			id: 'recording_streaming',
+			name: 'Recording & Streaming',
+			definitions: ['obs_recording', 'reaper_recording', 'stream_live'],
+		},
+		{
+			id: 'provideoplayer',
+			name: 'ProVideoPlayer',
+			definitions: ['pvp_now_playing', 'pvp_remaining_alarm'],
 		},
 	]
 	self.setPresetDefinitions(sections, presets)

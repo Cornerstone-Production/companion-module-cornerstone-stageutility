@@ -80,6 +80,15 @@ export interface PcoLiveDTO {
 	lengthSec: number | null
 	targetAt: string | null
 	serverNow: string
+	/** Current item title from the PCO PLAN order (authoritative), or null.
+	 *
+	 *  This copy of the DTO had drifted behind the app's: the server has sent this
+	 *  and `nextItemTitle` for a while. Only the fields this module reads are
+	 *  named here -- see the app's main/types/live.ts for the full shape -- but a
+	 *  field that exists on the wire and not here is one nothing can use. */
+	currentItemTitle?: string | null
+	/** Next non-header item title from the PCO plan order, or null. */
+	nextItemTitle?: string | null
 }
 
 export interface ProTimerDTO {
@@ -118,6 +127,59 @@ export interface PeopleCountDTO {
 	zones: PeopleZoneCountDTO[]
 }
 
+// Live OBS Studio output state (GET /api/obs/status, channel obs:status).
+// `connected` is the obs-websocket link; the rest are OBS's outputs.
+export interface ObsStatusDTO {
+	connected: boolean
+	recording: boolean
+	streaming: boolean
+	virtualCam: boolean
+	/** "HH:MM:SS" record duration while recording, else null. */
+	recordTimecode: string | null
+}
+
+// Live REAPER transport state (GET /api/reaper/status, channel reaper:status).
+// `connected` is the web-interface HTTP link.
+export interface ReaperStatusDTO {
+	connected: boolean
+	recording: boolean
+	/** REAPER's position string (e.g. "0:02.123"), or null. */
+	positionString: string | null
+}
+
+// One ProVideoPlayer layer (GET /api/pvp/status, channel pvp:status). Partial
+// mirror of main/types/pvp.ts PvpLayerDTO — only the fields this module reads.
+export interface PvpLayerDTO {
+	uuid: string
+	name: string
+	state: 'empty' | 'still' | 'video'
+	mediaName: string | null
+	lastCueName: string | null
+	nextCueName: string | null
+	playbackRate: number
+	anchorElapsedSec: number | null
+	durationSec: number | null
+}
+
+export interface PvpStatusDTO {
+	connected: boolean
+	layers: PvpLayerDTO[]
+	sampledAt: string | null
+}
+
+// One streaming platform (GET /api/resi/status, /api/youtube/status; channels
+// resi:status and youtube:status). `connected` is the link to the platform's
+// API, `live` is whether it is actually broadcasting — mid-service those are
+// different problems. `startedAt` is null when the platform will not say since
+// when, so elapsed is genuinely unknown rather than zero.
+export interface StreamStatusDTO {
+	connected: boolean
+	live: boolean
+	startedAt: string | null
+	/** Encoder or broadcast name — what it is streaming. */
+	detail: string | null
+}
+
 /**
  * What this instance looks like to the SDK.
  *
@@ -154,6 +216,7 @@ export type StageUtilityActions = {
 
 /** Options carried by each feedback id, and the kind of feedback it is. */
 export type StageUtilityFeedbacks = {
+	service_is_live: { type: 'boolean'; options: { state: string } }
 	countdown_overtime: { type: 'boolean'; options: Record<string, never> }
 	mic_battery_low: { type: 'boolean'; options: { threshold: number; channel: string | number } }
 	mic_offline: { type: 'boolean'; options: { channel: string | number } }
@@ -167,6 +230,14 @@ export type StageUtilityFeedbacks = {
 		options: { metric: string | number; zone: string | number; prefix: string; suffix: string }
 	}
 	captions_idle: { type: 'boolean'; options: { seconds: number } }
+	signal_is: { type: 'boolean'; options: { name: string; value: string } }
+	signal_error: { type: 'boolean'; options: { name: string } }
+	obs_active: { type: 'boolean'; options: { mode: string | number } }
+	reaper_recording: { type: 'boolean'; options: Record<string, never> }
+	stream_live: { type: 'boolean'; options: { platform: string | number } }
+	integration_disconnected: { type: 'boolean'; options: { source: string | number } }
+	pvp_playing: { type: 'boolean'; options: Record<string, never> }
+	pvp_remaining_under: { type: 'boolean'; options: { seconds: number } }
 }
 
 /** The record v2's `InstanceBase` is parameterised on. */
@@ -176,4 +247,16 @@ export interface StageUtilityInstanceTypes {
 	actions: StageUtilityActions
 	feedbacks: StageUtilityFeedbacks
 	variables: Record<string, string | number | boolean | undefined>
+}
+
+/** One named signal published by a Stage Utility automation rule.
+ *
+ *  `error` sits alongside the value rather than replacing it: the app never clears
+ *  a route on failure, so the last good value stays readable while the error says
+ *  why it did not update. */
+export interface SignalStateDTO {
+	value: string
+	at: string
+	ruleId: string | null
+	error: string | null
 }

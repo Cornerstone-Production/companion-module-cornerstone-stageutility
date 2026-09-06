@@ -1,8 +1,18 @@
 import type ModuleInstance from './main.js'
+import { pvpFmtDuration, stripExtension } from './pvp.js'
 
 export function UpdateVariableDefinitions(self: ModuleInstance): void {
 	// Per-zone people variables are dynamic — one set per zone the API reports.
 	// v2 takes an object keyed by variableId rather than an array of records.
+	// One pair per signal an automation rule has published. Dynamic, like the zone
+	// variables: the app decides which signals exist, and a Companion Trigger keys
+	// on whichever ones you use.
+	const signalVars: Record<string, { name: string }> = {}
+	for (const name of Object.keys(self.state.signals ?? {})) {
+		signalVars[`signal_${name}`] = { name: `Signal: ${name}` }
+		signalVars[`signal_${name}_error`] = { name: `Signal: ${name} (error, blank when healthy)` }
+	}
+
 	const zoneVars: Record<string, { name: string }> = {}
 	for (const [i] of (self.state.peopleCount?.zones ?? []).entries()) {
 		const n = i + 1
@@ -17,6 +27,7 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		people_updated: { name: 'People count last updated (local time)' },
 		people_zone_count: { name: 'People zone count' },
 		...zoneVars,
+		...signalVars,
 		plan_title: { name: 'Current plan title' },
 		series_title: { name: 'Current series title' },
 		service_type: { name: 'Service type' },
@@ -25,6 +36,9 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		next_item: { name: 'ProPresenter next item' },
 		slide_index: { name: 'Slide index' },
 		slide_count: { name: 'Slide count' },
+		service_live: { name: 'Service is live (yes/no)' },
+		live_mode: { name: 'PCO Live mode (item/preservice/none)' },
+		live_item: { name: 'Live item title (from the PCO plan order)' },
 		countdown_label: { name: 'PCO countdown label' },
 		countdown_seconds: { name: 'PCO countdown (mm:ss)' },
 		mics_online: { name: 'Mics online' },
@@ -34,7 +48,43 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		last_caption_text: { name: 'Last caption text' },
 		last_caption_speaker: { name: 'Last caption speaker' },
 		last_synced: { name: 'Last synced (local time)' },
+		obs_connected: { name: 'OBS connected (yes/no)' },
+		obs_recording: { name: 'OBS recording (yes/no)' },
+		obs_streaming: { name: 'OBS streaming (yes/no)' },
+		obs_virtual_cam: { name: 'OBS virtual camera (yes/no)' },
+		obs_timecode: { name: 'OBS record duration (HH:MM:SS)' },
+		reaper_connected: { name: 'REAPER connected (yes/no)' },
+		reaper_recording: { name: 'REAPER recording (yes/no)' },
+		reaper_position: { name: 'REAPER transport position' },
+		resi_connected: { name: 'Resi connected (yes/no)' },
+		resi_live: { name: 'Resi live (yes/no)' },
+		resi_detail: { name: 'Resi encoder / stream name' },
+		resi_elapsed: { name: 'Resi live for (mm:ss)' },
+		youtube_connected: { name: 'YouTube connected (yes/no)' },
+		youtube_live: { name: 'YouTube live (yes/no)' },
+		youtube_detail: { name: 'YouTube broadcast name' },
+		youtube_elapsed: { name: 'YouTube live for (mm:ss)' },
+		pvp_connected: { name: 'ProVideoPlayer connected (yes/no)' },
+		pvp_state: { name: 'ProVideoPlayer now-layer state (empty/still/paused/playing)' },
+		pvp_layer: { name: 'ProVideoPlayer now-layer name' },
+		pvp_cue: { name: 'ProVideoPlayer now-layer last cue' },
+		pvp_next_cue: { name: 'ProVideoPlayer now-layer next cue (playlist order)' },
+		pvp_media: { name: 'ProVideoPlayer now-layer media file name' },
+		pvp_media_short: { name: 'ProVideoPlayer now-layer media file name (extension stripped)' },
+		pvp_duration_seconds: { name: 'ProVideoPlayer clip duration (seconds)' },
+		pvp_elapsed_seconds: { name: 'ProVideoPlayer clip elapsed (seconds, ticks live)' },
+		pvp_remaining_seconds: { name: 'ProVideoPlayer clip remaining (seconds, ticks live)' },
+		pvp_remaining: { name: 'ProVideoPlayer clip remaining (m:ss / h:mm:ss, ticks live)' },
 	})
+}
+
+const yesNo = (value: boolean | undefined): string => (value ? 'yes' : 'no')
+
+/** REAPER reports "0:02.123"; whole seconds is what a button has room for. */
+function trimMillis(position: string | null | undefined): string {
+	const raw = position ?? ''
+	const dot = raw.indexOf('.')
+	return dot === -1 ? raw : raw.slice(0, dot)
 }
 
 function formatDuration(totalSec: number): string {
@@ -55,6 +105,21 @@ export function SetVariableValues(self: ModuleInstance): void {
 	const battery = st.lowestBattery()
 	const countdownSec = st.countdownSeconds()
 	const people = st.peopleCount
+	const obs = st.obs
+	const reaper = st.reaper
+	const resi = st.resi
+	const youtube = st.youtube
+	const resiElapsed = st.streamElapsedSeconds(resi)
+	const youtubeElapsed = st.streamElapsedSeconds(youtube)
+	const pvpLayer = st.pvpNowLayer()
+	const pvpProgress = st.pvpProgress()
+	const pvpBadge = st.pvpBadge()
+
+	const signalValues: Record<string, string> = {}
+	for (const [name, sig] of Object.entries(st.signals ?? {})) {
+		signalValues[`signal_${name}`] = sig.value
+		signalValues[`signal_${name}_error`] = sig.error ?? ''
+	}
 
 	const peopleVars: Record<string, string> = {
 		people_attendance: people?.total.attendance != null ? String(people.total.attendance) : '',
@@ -71,6 +136,7 @@ export function SetVariableValues(self: ModuleInstance): void {
 	})
 
 	self.setVariableValues({
+		...signalValues,
 		...peopleVars,
 		plan_title: stage?.planTitle ?? '',
 		series_title: stage?.planSeriesTitle ?? '',
@@ -80,6 +146,12 @@ export function SetVariableValues(self: ModuleInstance): void {
 		next_item: pp?.nextItem ?? '',
 		slide_index: pp?.slideIndex != null ? String(pp.slideIndex + 1) : '',
 		slide_count: pp?.slideCount != null ? String(pp.slideCount) : '',
+		// PCO Services Live, not a stream or a recorder: an encoder started for a
+		// soundcheck is not a service, and neither is OBS recording. See
+		// state.liveMode().
+		service_live: st.isServiceLive() ? 'yes' : 'no',
+		live_mode: st.liveMode(),
+		live_item: live?.currentItemTitle ?? live?.label ?? '',
 		countdown_label: live?.label ?? '',
 		countdown_seconds: countdownSec === null ? '' : formatDuration(countdownSec),
 		mics_online: String(st.onlineChannels().length),
@@ -89,5 +161,32 @@ export function SetVariableValues(self: ModuleInstance): void {
 		last_caption_text: st.lastCaptionText,
 		last_caption_speaker: st.lastCaptionSpeaker,
 		last_synced: stage?.lastRefreshedAt ? new Date(stage.lastRefreshedAt).toLocaleTimeString() : '',
+		obs_connected: yesNo(obs?.connected),
+		obs_recording: yesNo(obs?.recording),
+		obs_streaming: yesNo(obs?.streaming),
+		obs_virtual_cam: yesNo(obs?.virtualCam),
+		obs_timecode: obs?.recording ? (obs.recordTimecode ?? '') : '',
+		reaper_connected: yesNo(reaper?.connected),
+		reaper_recording: yesNo(reaper?.recording),
+		reaper_position: trimMillis(reaper?.positionString),
+		resi_connected: yesNo(resi?.connected),
+		resi_live: yesNo(resi?.live),
+		resi_detail: resi?.detail ?? '',
+		resi_elapsed: resiElapsed === null ? '' : formatDuration(resiElapsed),
+		youtube_connected: yesNo(youtube?.connected),
+		youtube_live: yesNo(youtube?.live),
+		youtube_detail: youtube?.detail ?? '',
+		youtube_elapsed: youtubeElapsed === null ? '' : formatDuration(youtubeElapsed),
+		pvp_connected: st.pvp?.connected ? 'yes' : 'no',
+		pvp_state: pvpBadge,
+		pvp_layer: pvpLayer?.name ?? '',
+		pvp_cue: pvpLayer?.lastCueName ?? '',
+		pvp_next_cue: pvpLayer?.nextCueName ?? '',
+		pvp_media: pvpLayer?.mediaName ?? '',
+		pvp_media_short: pvpLayer?.mediaName ? stripExtension(pvpLayer.mediaName) : '',
+		pvp_duration_seconds: pvpProgress ? String(Math.round(pvpProgress.durationSec)) : '',
+		pvp_elapsed_seconds: pvpProgress ? String(Math.round(pvpProgress.elapsedSec)) : '',
+		pvp_remaining_seconds: pvpProgress ? String(Math.round(pvpProgress.remainingSec)) : '',
+		pvp_remaining: pvpProgress ? pvpFmtDuration(pvpProgress.remainingSec) : '',
 	})
 }

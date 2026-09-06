@@ -6,7 +6,8 @@ church stage-monitor server.
 
 Drive PCO Services Live, route views onto screens, black out an output, reload
 displays, and read mic RF and battery, the PCO countdown, ProPresenter status,
-captions and people counts from a Stream Deck.
+captions, people counts, ProVideoPlayer now-playing status and OBS, REAPER,
+Resi and YouTube status from a Stream Deck.
 
 The module connects to Stage Utility over its HTTP and SSE API on the local
 network. There is no authentication — the API is LAN-only by design.
@@ -15,6 +16,9 @@ network. There is no authentication — the API is LAN-only by design.
 variable reference, and is what Companion shows in-app.
 
 ## Install
+
+Requires **Companion 4.3.0 or newer** — the module targets the v2 connection API
+added in that release, and will not start on anything older.
 
 Download the `.tgz` from the
 [latest release](https://github.com/Cornerstone-Production/companion-module-cornerstone-stageutility/releases)
