@@ -157,6 +157,34 @@ export function UpdatePresets(self: ModuleInstance): void {
 				{ feedbackId: 'stream_live', options: { platform: ANY_ID }, style: { bgcolor: GREEN, color: WHITE } },
 			],
 		},
+		pvp_now_playing: {
+			type: 'simple',
+			name: 'PVP now playing (with remaining)',
+			style: {
+				text: `PVP\\n${v('pvp_remaining')}`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [{ down: [], up: [] }],
+			feedbacks: [{ feedbackId: 'pvp_playing', options: {}, style: { bgcolor: GREEN, color: WHITE } }],
+		},
+		pvp_remaining_alarm: {
+			type: 'simple',
+			name: 'PVP remaining time alarm',
+			style: {
+				text: `PVP\\n${v('pvp_remaining')}`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [{ down: [], up: [] }],
+			feedbacks: [
+				{ feedbackId: 'pvp_remaining_under', options: { seconds: 30 }, style: { bgcolor: RED, color: WHITE } },
+			],
+		},
 	}
 
 	// v2 takes the grouping separately: sections reference preset ids, rather
@@ -173,6 +201,11 @@ export function UpdatePresets(self: ModuleInstance): void {
 			id: 'recording_streaming',
 			name: 'Recording & Streaming',
 			definitions: ['obs_recording', 'reaper_recording', 'stream_live'],
+		},
+		{
+			id: 'provideoplayer',
+			name: 'ProVideoPlayer',
+			definitions: ['pvp_now_playing', 'pvp_remaining_alarm'],
 		},
 	]
 	self.setPresetDefinitions(sections, presets)

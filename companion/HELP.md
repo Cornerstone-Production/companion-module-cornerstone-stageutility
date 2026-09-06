@@ -21,8 +21,8 @@ running" with no config loaded.
    integration panel shows the connected client.
 
 Leave **Poll fallback** at `0` unless your network cannot hold the event stream
-open. The module is event-driven; enabling the fallback re-fetches thirteen
-endpoints on every tick, so five seconds is 156 requests a minute for
+open. The module is event-driven; enabling the fallback re-fetches fourteen
+endpoints on every tick, so five seconds is 168 requests a minute for
 configuration that rarely changes.
 
 ### Actions
@@ -45,22 +45,24 @@ configuration that rarely changes.
 
 Button styling that follows the live service.
 
-| Feedback                  | Lights when                                                 |
-| ------------------------- | ----------------------------------------------------------- |
-| PCO countdown in overtime | the live timer goes negative                                |
-| Mic battery low           | any channel, or a chosen one, drops below a threshold       |
-| Mic offline               | any channel, or a chosen one, loses RF                      |
-| ProPresenter disconnected | the ProPresenter connection drops                           |
-| Plan mode is Manual       | automatic plan-following is off                             |
-| Output is showing a view  | a given output is showing a given view                      |
-| Output is blacked out     | a given output is blacked out                               |
-| Occupancy over threshold  | a room or zone goes above a set count                       |
-| Captions idle             | no caption has arrived for a set number of seconds          |
-| People count text         | writes the current count onto the button                    |
-| OBS active                | OBS is recording, streaming or on virtual camera            |
-| REAPER recording          | REAPER's transport is rolling                               |
-| Streaming platform live   | Resi, YouTube, or either, is on air                         |
-| Recorder / platform down  | a chosen one of OBS, REAPER, Resi or YouTube is unreachable |
+| Feedback                  | Lights when                                                                      |
+| ------------------------- | -------------------------------------------------------------------------------- |
+| PCO countdown in overtime | the live timer goes negative                                                     |
+| Mic battery low           | any channel, or a chosen one, drops below a threshold                            |
+| Mic offline               | any channel, or a chosen one, loses RF                                           |
+| ProPresenter disconnected | the ProPresenter connection drops                                                |
+| Plan mode is Manual       | automatic plan-following is off                                                  |
+| Output is showing a view  | a given output is showing a given view                                           |
+| Output is blacked out     | a given output is blacked out                                                    |
+| Occupancy over threshold  | a room or zone goes above a set count                                            |
+| Captions idle             | no caption has arrived for a set number of seconds                               |
+| People count text         | writes the current count onto the button                                         |
+| OBS active                | OBS is recording, streaming or on virtual camera                                 |
+| REAPER recording          | REAPER's transport is rolling                                                    |
+| Streaming platform live   | Resi, YouTube, or either, is on air                                              |
+| Recorder / platform down  | a chosen one of OBS, REAPER, Resi or YouTube is unreachable                      |
+| PVP now-layer playing     | ProVideoPlayer's now layer is rolling a video                                    |
+| PVP remaining under       | the now layer is playing with remaining time at or under a set number of seconds |
 
 ### Variables
 
@@ -90,11 +92,24 @@ and `youtube_connected`, `youtube_live`, `youtube_detail`, `youtube_elapsed`
 `people_zone_N_name`, `people_zone_N_attendance` and `people_zone_N_occupancy`
 for each zone the server reports.
 
+**ProVideoPlayer** — the "now" layer: whichever layer PVP's own now-playing
+widget would show (the first layer in PVP's stack order that holds something).
+
+- `pvp_connected` — ProVideoPlayer connected (yes/no)
+- `pvp_state` — now layer's state: `empty`, `still`, `paused` or `playing`
+- `pvp_layer` — now layer's name
+- `pvp_cue` — now layer's last cue name
+- `pvp_next_cue` — the playlist entry after the last cue (only ever a guess once a cue has been hand-fired)
+- `pvp_media` — now layer's media file name
+- `pvp_media_short` — media file name with the extension stripped
+- `pvp_duration_seconds`, `pvp_elapsed_seconds`, `pvp_remaining_seconds` — whole seconds, blank when nothing has a duration (ticks live between updates)
+- `pvp_remaining` — remaining time formatted m:ss / h:mm:ss, blank when nothing has a duration (ticks live between updates)
+
 ### Presets
 
 Ready-made buttons under **Live Control**, **Routing & Displays**,
-**Monitoring & Alarms** and **Recording & Streaming**. Drag one onto a button to
-get started.
+**Monitoring & Alarms**, **Recording & Streaming** and **ProVideoPlayer**. Drag
+one onto a button to get started.
 
 Recording and streaming are read-only: the buttons report what OBS, REAPER, Resi
 and YouTube are doing. Starting or stopping them is done in those applications,

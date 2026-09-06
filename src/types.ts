@@ -147,6 +147,26 @@ export interface ReaperStatusDTO {
 	positionString: string | null
 }
 
+// One ProVideoPlayer layer (GET /api/pvp/status, channel pvp:status). Partial
+// mirror of main/types/pvp.ts PvpLayerDTO — only the fields this module reads.
+export interface PvpLayerDTO {
+	uuid: string
+	name: string
+	state: 'empty' | 'still' | 'video'
+	mediaName: string | null
+	lastCueName: string | null
+	nextCueName: string | null
+	playbackRate: number
+	anchorElapsedSec: number | null
+	durationSec: number | null
+}
+
+export interface PvpStatusDTO {
+	connected: boolean
+	layers: PvpLayerDTO[]
+	sampledAt: string | null
+}
+
 // One streaming platform (GET /api/resi/status, /api/youtube/status; channels
 // resi:status and youtube:status). `connected` is the link to the platform's
 // API, `live` is whether it is actually broadcasting — mid-service those are
@@ -216,6 +236,8 @@ export type StageUtilityFeedbacks = {
 	reaper_recording: { type: 'boolean'; options: Record<string, never> }
 	stream_live: { type: 'boolean'; options: { platform: string | number } }
 	integration_disconnected: { type: 'boolean'; options: { source: string | number } }
+	pvp_playing: { type: 'boolean'; options: Record<string, never> }
+	pvp_remaining_under: { type: 'boolean'; options: { seconds: number } }
 }
 
 /** The record v2's `InstanceBase` is parameterised on. */

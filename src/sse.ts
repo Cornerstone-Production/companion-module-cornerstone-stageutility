@@ -20,6 +20,7 @@ export const SSE_EVENTS = [
 	'reaper:status',
 	'resi:status',
 	'youtube:status',
+	'pvp:status',
 ] as const
 
 export type SseEventName = (typeof SSE_EVENTS)[number]

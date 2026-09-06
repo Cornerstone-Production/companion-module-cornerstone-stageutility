@@ -1,4 +1,5 @@
 import type ModuleInstance from './main.js'
+import { pvpFmtDuration, stripExtension } from './pvp.js'
 
 export function UpdateVariableDefinitions(self: ModuleInstance): void {
 	// Per-zone people variables are dynamic — one set per zone the API reports.
@@ -63,6 +64,17 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		youtube_live: { name: 'YouTube live (yes/no)' },
 		youtube_detail: { name: 'YouTube broadcast name' },
 		youtube_elapsed: { name: 'YouTube live for (mm:ss)' },
+		pvp_connected: { name: 'ProVideoPlayer connected (yes/no)' },
+		pvp_state: { name: 'ProVideoPlayer now-layer state (empty/still/paused/playing)' },
+		pvp_layer: { name: 'ProVideoPlayer now-layer name' },
+		pvp_cue: { name: 'ProVideoPlayer now-layer last cue' },
+		pvp_next_cue: { name: 'ProVideoPlayer now-layer next cue (playlist order)' },
+		pvp_media: { name: 'ProVideoPlayer now-layer media file name' },
+		pvp_media_short: { name: 'ProVideoPlayer now-layer media file name (extension stripped)' },
+		pvp_duration_seconds: { name: 'ProVideoPlayer clip duration (seconds)' },
+		pvp_elapsed_seconds: { name: 'ProVideoPlayer clip elapsed (seconds, ticks live)' },
+		pvp_remaining_seconds: { name: 'ProVideoPlayer clip remaining (seconds, ticks live)' },
+		pvp_remaining: { name: 'ProVideoPlayer clip remaining (m:ss / h:mm:ss, ticks live)' },
 	})
 }
 
@@ -99,6 +111,9 @@ export function SetVariableValues(self: ModuleInstance): void {
 	const youtube = st.youtube
 	const resiElapsed = st.streamElapsedSeconds(resi)
 	const youtubeElapsed = st.streamElapsedSeconds(youtube)
+	const pvpLayer = st.pvpNowLayer()
+	const pvpProgress = st.pvpProgress()
+	const pvpBadge = st.pvpBadge()
 
 	const signalValues: Record<string, string> = {}
 	for (const [name, sig] of Object.entries(st.signals ?? {})) {
@@ -162,5 +177,16 @@ export function SetVariableValues(self: ModuleInstance): void {
 		youtube_live: yesNo(youtube?.live),
 		youtube_detail: youtube?.detail ?? '',
 		youtube_elapsed: youtubeElapsed === null ? '' : formatDuration(youtubeElapsed),
+		pvp_connected: st.pvp?.connected ? 'yes' : 'no',
+		pvp_state: pvpBadge,
+		pvp_layer: pvpLayer?.name ?? '',
+		pvp_cue: pvpLayer?.lastCueName ?? '',
+		pvp_next_cue: pvpLayer?.nextCueName ?? '',
+		pvp_media: pvpLayer?.mediaName ?? '',
+		pvp_media_short: pvpLayer?.mediaName ? stripExtension(pvpLayer.mediaName) : '',
+		pvp_duration_seconds: pvpProgress ? String(Math.round(pvpProgress.durationSec)) : '',
+		pvp_elapsed_seconds: pvpProgress ? String(Math.round(pvpProgress.elapsedSec)) : '',
+		pvp_remaining_seconds: pvpProgress ? String(Math.round(pvpProgress.remainingSec)) : '',
+		pvp_remaining: pvpProgress ? pvpFmtDuration(pvpProgress.remainingSec) : '',
 	})
 }
