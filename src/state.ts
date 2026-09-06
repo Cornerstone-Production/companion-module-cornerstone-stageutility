@@ -8,12 +8,15 @@ import type {
 	PresetDTO,
 	SignalStateDTO,
 	ProPresenterStatusDTO,
+	PvpLayerDTO,
+	PvpStatusDTO,
 	ReaperStatusDTO,
 	ServiceTypeDTO,
 	StageStateDTO,
 	StreamStatusDTO,
 	ViewDTO,
 } from './types.js'
+import { pvpBadge, pvpNowLayer, pvpProgress, type PvpBadge, type PvpProgress } from './pvp.js'
 
 // Single source of truth the SSE stream writes to; actions/feedbacks/variables
 // read from here. Everything is nullable until the first hydrate completes.
@@ -26,6 +29,7 @@ export class StateCache {
 	reaper: ReaperStatusDTO | null = null
 	resi: StreamStatusDTO | null = null
 	youtube: StreamStatusDTO | null = null
+	pvp: PvpStatusDTO | null = null
 
 	// Named signals from automation rules, keyed by signal name. Each becomes a
 	// $(stage:signal_<name>) variable a Companion Trigger can act on.
@@ -97,6 +101,21 @@ export class StateCache {
 		const started = Date.parse(stream.startedAt)
 		if (!Number.isFinite(started)) return null
 		return Math.max(0, Math.round((this.serverNowMs() - started) / 1000))
+	}
+
+	/** The layer this module treats as "now playing" — see pvp.ts pvpNowLayer. */
+	pvpNowLayer(): PvpLayerDTO | null {
+		return pvpNowLayer(this.pvp?.layers ?? [])
+	}
+
+	/** Live elapsed/remaining for the now layer, or null when nothing is rolling. */
+	pvpProgress(): PvpProgress | null {
+		return pvpProgress(this.pvpNowLayer(), this.pvp?.sampledAt ?? null, this.serverNowMs())
+	}
+
+	/** empty | still | paused | playing — mirrors pvp-now.tsx nowBadge. */
+	pvpBadge(): PvpBadge {
+		return pvpBadge(this.pvpNowLayer(), this.pvpProgress())
 	}
 
 	onlineChannels(): DeviceStatusDTO[] {

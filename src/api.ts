@@ -8,6 +8,7 @@ import type {
 	PlanDTO,
 	PresetDTO,
 	ProPresenterStatusDTO,
+	PvpStatusDTO,
 	ReaperStatusDTO,
 	ServiceTypeDTO,
 	StageStateDTO,
@@ -79,6 +80,9 @@ export class ApiClient {
 	}
 	async getYouTube(): Promise<StreamStatusDTO> {
 		return this.request('GET', '/api/youtube/status')
+	}
+	async getPvp(): Promise<PvpStatusDTO> {
+		return this.request('GET', '/api/pvp/status')
 	}
 
 	// ── Control verbs (Companion actions) ──

@@ -13,6 +13,7 @@ import type {
 	PcoLiveDTO,
 	PeopleCountDTO,
 	ProPresenterStatusDTO,
+	PvpStatusDTO,
 	ReaperStatusDTO,
 	SignalStateDTO,
 	StageStateDTO,
@@ -38,6 +39,8 @@ const ALL_FEEDBACKS = [
 	'reaper_recording',
 	'stream_live',
 	'integration_disconnected',
+	'pvp_playing',
+	'pvp_remaining_under',
 ] as const
 
 export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTypes> {
@@ -140,6 +143,7 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 			reaper,
 			resi,
 			youtube,
+			pvp,
 		] = await Promise.all([
 			this.api.getState(),
 			this.api.getViews(),
@@ -156,6 +160,7 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 			this.api.getReaper().catch(() => null),
 			this.api.getResi().catch(() => null),
 			this.api.getYouTube().catch(() => null),
+			this.api.getPvp().catch(() => null),
 		])
 		this.state.stage = stage
 		this.state.views = views
@@ -170,6 +175,7 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 		if (reaper) this.state.reaper = reaper
 		if (resi) this.state.resi = resi
 		if (youtube) this.state.youtube = youtube
+		if (pvp) this.state.pvp = pvp
 		if (stage.serviceTypeId) {
 			this.state.plans = await this.api.getPlans(stage.serviceTypeId).catch(() => [])
 		}
@@ -273,6 +279,11 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 				SetVariableValues(this)
 				this.checkFeedbacks('stream_live', 'integration_disconnected')
 				break
+			case 'pvp:status':
+				this.state.pvp = data as PvpStatusDTO
+				SetVariableValues(this)
+				this.checkFeedbacks('pvp_playing', 'pvp_remaining_under')
+				break
 			case 'wireless:connections-changed':
 				void this.api
 					.getChannels()
@@ -297,11 +308,11 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 
 	private startTicker(): void {
 		this.stopTicker()
-		// Tick the countdown locally between ~1.5s pco:live updates and re-check
-		// the time-relative feedbacks.
+		// Tick the countdown and the PVP remaining-time interpolation locally
+		// between updates, and re-check the time-relative feedbacks.
 		this.ticker = setInterval(() => {
 			SetVariableValues(this)
-			this.checkFeedbacks('countdown_overtime', 'captions_idle')
+			this.checkFeedbacks('countdown_overtime', 'captions_idle', 'pvp_remaining_under')
 		}, 1000)
 	}
 	private stopTicker(): void {

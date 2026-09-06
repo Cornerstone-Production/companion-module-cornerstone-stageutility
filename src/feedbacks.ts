@@ -292,5 +292,23 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				return Date.now() - self.state.lastCaptionAt > Number(fb.options.seconds) * 1000
 			},
 		},
+		pvp_playing: {
+			name: 'ProVideoPlayer now-layer is playing a video',
+			type: 'boolean',
+			defaultStyle: { bgcolor: GREEN, color: WHITE },
+			options: [],
+			callback: () => self.state.pvpBadge() === 'playing',
+		},
+		pvp_remaining_under: {
+			name: 'ProVideoPlayer remaining time at or under threshold',
+			type: 'boolean',
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			options: [{ id: 'seconds', type: 'number', label: 'Seconds', default: 30, min: 0, max: 3600 }],
+			callback: (fb) => {
+				if (self.state.pvpBadge() !== 'playing') return false
+				const progress = self.state.pvpProgress()
+				return !!progress && progress.remainingSec <= Number(fb.options.seconds)
+			},
+		},
 	})
 }
