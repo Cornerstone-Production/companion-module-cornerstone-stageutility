@@ -65,7 +65,7 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		youtube_detail: { name: 'YouTube broadcast name' },
 		youtube_elapsed: { name: 'YouTube live for (mm:ss)' },
 		pvp_connected: { name: 'ProVideoPlayer connected (yes/no)' },
-		pvp_state: { name: 'ProVideoPlayer now-layer state (empty/still/paused/playing)' },
+		pvp_state: { name: 'ProVideoPlayer now-layer state (empty/still/paused/playing/ended)' },
 		pvp_layer: { name: 'ProVideoPlayer now-layer name' },
 		pvp_cue: { name: 'ProVideoPlayer now-layer last cue' },
 		pvp_next_cue: { name: 'ProVideoPlayer now-layer next cue (playlist order)' },

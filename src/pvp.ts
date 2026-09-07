@@ -58,7 +58,7 @@ export function pvpProgress(
 	return { elapsedSec, remainingSec: duration - elapsedSec, durationSec: duration }
 }
 
-export type PvpBadge = 'empty' | 'still' | 'paused' | 'playing'
+export type PvpBadge = 'empty' | 'still' | 'paused' | 'playing' | 'ended'
 
 /**
  * The state word, mirroring renderer/main/pvp-now.tsx nowBadge exactly:
@@ -68,6 +68,10 @@ export type PvpBadge = 'empty' | 'still' | 'paused' | 'playing'
  */
 export function pvpBadge(layer: PvpLayerDTO | null, progress: PvpProgress | null): PvpBadge {
 	if (!layer || !hasContent(layer)) return 'empty'
+	// A clip that ran out and is holding its last frame. PVP keeps reporting the
+	// rate it stopped at (1 was observed), so the state must be read before the
+	// rate, or a finished bumper reads "playing" for the rest of the service.
+	if (layer.state === 'ended') return 'ended'
 	if (layer.playbackRate > 0) return 'playing'
 	return progress ? 'paused' : 'still'
 }
