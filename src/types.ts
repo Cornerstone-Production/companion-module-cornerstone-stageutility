@@ -152,7 +152,7 @@ export interface ReaperStatusDTO {
 export interface PvpLayerDTO {
 	uuid: string
 	name: string
-	state: 'empty' | 'still' | 'video'
+	state: 'empty' | 'still' | 'video' | 'ended'
 	mediaName: string | null
 	lastCueName: string | null
 	nextCueName: string | null

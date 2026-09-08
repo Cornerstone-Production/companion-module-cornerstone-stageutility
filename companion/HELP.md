@@ -96,7 +96,7 @@ for each zone the server reports.
 widget would show (the first layer in PVP's stack order that holds something).
 
 - `pvp_connected` — ProVideoPlayer connected (yes/no)
-- `pvp_state` — now layer's state: `empty`, `still`, `paused` or `playing`
+- `pvp_state` — now layer's state: `empty`, `still`, `paused`, `playing` or `ended` (a clip that ran out and is holding its last frame)
 - `pvp_layer` — now layer's name
 - `pvp_cue` — now layer's last cue name
 - `pvp_next_cue` — the playlist entry after the last cue (only ever a guess once a cue has been hand-fired)
