@@ -9,6 +9,7 @@ import { SetVariableValues, UpdateVariableDefinitions } from './variables.js'
 import { UpdatePresets } from './presets.js'
 import { UpgradeScripts } from './upgrades.js'
 import type {
+	BaptismStateDTO,
 	ObsStatusDTO,
 	PcoLiveDTO,
 	PeopleCountDTO,
@@ -41,6 +42,9 @@ const ALL_FEEDBACKS = [
 	'integration_disconnected',
 	'pvp_playing',
 	'pvp_remaining_under',
+	'baptism_phase_color',
+	'baptism_paused',
+	'baptism_running',
 ] as const
 
 export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTypes> {
@@ -144,6 +148,7 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 			resi,
 			youtube,
 			pvp,
+			baptism,
 		] = await Promise.all([
 			this.api.getState(),
 			this.api.getViews(),
@@ -161,6 +166,7 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 			this.api.getResi().catch(() => null),
 			this.api.getYouTube().catch(() => null),
 			this.api.getPvp().catch(() => null),
+			this.api.getBaptism().catch(() => null),
 		])
 		this.state.stage = stage
 		this.state.views = views
@@ -176,6 +182,7 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 		if (resi) this.state.resi = resi
 		if (youtube) this.state.youtube = youtube
 		if (pvp) this.state.pvp = pvp
+		if (baptism) this.state.baptism = baptism
 		if (stage.serviceTypeId) {
 			this.state.plans = await this.api.getPlans(stage.serviceTypeId).catch(() => [])
 		}
@@ -283,6 +290,14 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 				this.state.pvp = data as PvpStatusDTO
 				SetVariableValues(this)
 				this.checkFeedbacks('pvp_playing', 'pvp_remaining_under')
+				break
+			case 'baptism:state':
+				// Tolerates unknown fields: a newer server (the Baptisms-tab / History
+				// PRs, neither part of this one) can add more to this same payload
+				// without this module needing to change in step.
+				this.state.baptism = data as BaptismStateDTO
+				SetVariableValues(this)
+				this.checkFeedbacks('baptism_phase_color', 'baptism_paused', 'baptism_running')
 				break
 			case 'wireless:connections-changed':
 				void this.api

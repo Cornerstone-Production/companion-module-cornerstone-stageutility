@@ -1,13 +1,25 @@
 import { combineRgb } from '@companion-module/base'
 import type ModuleInstance from './main.js'
+import { baptismIsPaused, baptismPhaseWord } from './baptism.js'
 import { ANY_ID, channelChoices, firstId, outputChoices, peopleZoneChoices, viewChoices } from './choices.js'
 
 const RED = combineRgb(200, 30, 30)
 const YELLOW = combineRgb(220, 180, 0)
 const ORANGE = combineRgb(220, 120, 0)
 const GREEN = combineRgb(0, 150, 70)
+const BLUE = combineRgb(30, 110, 190)
 const WHITE = combineRgb(255, 255, 255)
 const BLACK = combineRgb(0, 0, 0)
+
+/** bgcolor per baptism_phase_color reading — idle draws no attention, armed is
+ *  the "about to" colour shared with plan_mode_manual, testimony and baptism
+ *  are each their own hue so a glance tells the two apart. */
+const BAPTISM_PHASE_COLOR: Record<string, ReturnType<typeof combineRgb>> = {
+	idle: BLACK,
+	armed: ORANGE,
+	testimony: BLUE,
+	baptism: GREEN,
+}
 
 export function UpdateFeedbacks(self: ModuleInstance): void {
 	const channels = channelChoices(self.state, true)
@@ -308,6 +320,33 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				if (self.state.pvpBadge() !== 'playing') return false
 				const progress = self.state.pvpProgress()
 				return !!progress && progress.remainingSec <= Number(fb.options.seconds)
+			},
+		},
+		// Advanced, not four boolean feedbacks per phase: ONE key reads the phase
+		// without a second key to explain it, coloured whichever way the phase
+		// currently is rather than needing a feedback instance per colour.
+		baptism_phase_color: {
+			name: 'Baptism phase colour',
+			type: 'advanced',
+			affectedProperties: ['bgcolor', 'color'],
+			options: [],
+			callback: () => ({ bgcolor: BAPTISM_PHASE_COLOR[baptismPhaseWord(self.state.baptism)] ?? BLACK, color: WHITE }),
+		},
+		baptism_paused: {
+			name: 'Baptism timer paused',
+			type: 'boolean',
+			defaultStyle: { bgcolor: YELLOW, color: BLACK },
+			options: [],
+			callback: () => baptismIsPaused(self.state.baptism),
+		},
+		baptism_running: {
+			name: 'Baptism timer running (a clock is actually counting)',
+			type: 'boolean',
+			defaultStyle: { bgcolor: GREEN, color: WHITE },
+			options: [],
+			callback: () => {
+				const b = self.state.baptism
+				return !!b && b.phase !== 'idle' && !b.armed && !!b.segmentStartedAt
 			},
 		},
 	})

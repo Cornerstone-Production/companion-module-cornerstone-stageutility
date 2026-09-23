@@ -212,6 +212,16 @@ export type StageUtilityActions = {
 	refresh_displays: { options: { scope: string | number; output: string | number } }
 	apply_preset: { options: { preset: string | number } }
 	show_qr: { options: { mode: string | number } }
+	baptism_start: { options: Record<string, never> }
+	baptism_advance: { options: Record<string, never> }
+	baptism_baptized: { options: Record<string, never> }
+	baptism_start_baptisms: { options: Record<string, never> }
+	baptism_next: { options: Record<string, never> }
+	baptism_pause_resume: { options: Record<string, never> }
+	baptism_undo: { options: Record<string, never> }
+	baptism_finish: { options: Record<string, never> }
+	baptism_reset: { options: Record<string, never> }
+	baptism_set_workflow: { options: { mode: string | number } }
 }
 
 /** Options carried by each feedback id, and the kind of feedback it is. */
@@ -238,6 +248,9 @@ export type StageUtilityFeedbacks = {
 	integration_disconnected: { type: 'boolean'; options: { source: string | number } }
 	pvp_playing: { type: 'boolean'; options: Record<string, never> }
 	pvp_remaining_under: { type: 'boolean'; options: { seconds: number } }
+	baptism_phase_color: { type: 'advanced'; options: Record<string, never> }
+	baptism_paused: { type: 'boolean'; options: Record<string, never> }
+	baptism_running: { type: 'boolean'; options: Record<string, never> }
 }
 
 /** The record v2's `InstanceBase` is parameterised on. */
@@ -247,6 +260,40 @@ export interface StageUtilityInstanceTypes {
 	actions: StageUtilityActions
 	feedbacks: StageUtilityFeedbacks
 	variables: Record<string, string | number | boolean | undefined>
+}
+
+// One person's timed testimony + baptism (GET /api/baptism, channel
+// baptism:state).
+export interface BaptismPersonDTO {
+	testimonyMs: number
+	baptizeMs: number
+}
+
+// Live baptism-timer state (GET /api/baptism, channel baptism:state). Partial
+// mirror of main/types/baptism.ts BaptismState — only the fields this module
+// reads. A newer server (the Baptisms-tab / History PRs, neither part of this
+// one) adds more fields to the same payload; declaring only what is read here
+// is what lets those pass through ignored rather than needing this module to
+// change in step with the app.
+export interface BaptismStateDTO {
+	mode: 'per-person' | 'grouped'
+	phase: 'idle' | 'testimony' | 'baptism'
+	/** 1-based number of the person currently being timed (or about to start).
+	 *  In grouped mode this is the TESTIMONY counter — it freezes once the
+	 *  baptism section arms, so it is never "who is being baptized". */
+	personNumber: number
+	/** Grouped baptism pass only: 0-based index into `people` of who is
+	 *  currently being baptized. */
+	baptismIndex: number
+	/** Grouped only: the baptism phase has begun but nobody's clock runs yet. */
+	armed?: boolean
+	segmentStartedAt: string | null
+	segmentAccumMs?: number
+	sessionStartedAt: string | null
+	finishedAt: string | null
+	people: BaptismPersonDTO[]
+	/** Testimony split captured for the in-progress person (set while in "baptism"). */
+	pendingTestimonyMs: number | null
 }
 
 /** One named signal published by a Stage Utility automation rule.

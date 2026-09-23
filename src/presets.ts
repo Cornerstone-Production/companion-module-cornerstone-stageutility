@@ -185,6 +185,107 @@ export function UpdatePresets(self: ModuleInstance): void {
 				{ feedbackId: 'pvp_remaining_under', options: { seconds: 30 }, style: { bgcolor: RED, color: WHITE } },
 			],
 		},
+
+		// This person's testimony, ONCE BANKED — frozen while their baptism is
+		// timed. Captioned as such rather than left to read like a second live
+		// clock next to the one below.
+		baptism_testimony: {
+			type: 'simple',
+			name: "Baptism: this person's testimony, once banked (readout)",
+			style: {
+				text: `TESTIMONY\\n${v('baptism_testimony')}\\nonce banked`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [],
+			feedbacks: [],
+		},
+		// The ONE live clock, for both phases — baptism_segment ticks during a
+		// testimony exactly the same as during a baptism. A fixed "BAPTISM"
+		// caption here would read the testimony clock as if it belonged to the
+		// wrong phase; the phase itself is the caption, so the key always names
+		// what it is timing right now (idle / armed / testimony / baptism).
+		baptism_segment: {
+			type: 'simple',
+			name: 'Baptism: live clock, testimony or baptism (readout)',
+			style: {
+				text: `${v('baptism_phase')}\\n${v('baptism_segment')}\\n${v('baptism_person')}`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [],
+			feedbacks: [{ feedbackId: 'baptism_running', options: {}, style: { bgcolor: GREEN, color: WHITE } }],
+		},
+		baptism_count: {
+			type: 'simple',
+			name: 'Baptism: people baptized (readout)',
+			style: {
+				text: `BAPTIZED\\n${v('baptism_count')}\\nthis session`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [],
+			feedbacks: [],
+		},
+		baptism_session: {
+			type: 'simple',
+			name: 'Baptism: session elapsed (readout)',
+			style: {
+				text: `SESSION\\n${v('baptism_session')}\\ntotal`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [],
+			feedbacks: [],
+		},
+		baptism_advance: {
+			type: 'simple',
+			name: 'Baptism: advance (NEXT — phase-aware)',
+			style: {
+				text: 'NEXT\\nadvance',
+				size: 'auto',
+				color: WHITE,
+				bgcolor: combineRgb(46, 102, 145),
+				show_topbar: false,
+			},
+			steps: [{ down: [{ actionId: 'baptism_advance', options: {} }], up: [] }],
+			feedbacks: [],
+		},
+		baptism_back: {
+			type: 'simple',
+			name: 'Baptism: back (undo)',
+			style: { text: 'BACK\\nundo', size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
+			steps: [{ down: [{ actionId: 'baptism_undo', options: {} }], up: [] }],
+			feedbacks: [],
+		},
+		baptism_pause_resume: {
+			type: 'simple',
+			name: 'Baptism: pause / resume',
+			style: {
+				text: `PAUSED\\n${v('baptism_segment')}\\ntap to resume`,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [{ down: [{ actionId: 'baptism_pause_resume', options: {} }], up: [] }],
+			feedbacks: [{ feedbackId: 'baptism_paused', options: {}, style: { bgcolor: YELLOW, color: BLACK } }],
+		},
+		baptism_finish: {
+			type: 'simple',
+			name: 'Baptism: finish (log session)',
+			style: { text: 'FINISH\\nlog session', size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
+			steps: [{ down: [{ actionId: 'baptism_finish', options: {} }], up: [] }],
+			feedbacks: [],
+		},
 	}
 
 	// v2 takes the grouping separately: sections reference preset ids, rather
@@ -206,6 +307,20 @@ export function UpdatePresets(self: ModuleInstance): void {
 			id: 'provideoplayer',
 			name: 'ProVideoPlayer',
 			definitions: ['pvp_now_playing', 'pvp_remaining_alarm'],
+		},
+		{
+			id: 'baptisms',
+			name: 'Baptisms',
+			definitions: [
+				'baptism_testimony',
+				'baptism_segment',
+				'baptism_count',
+				'baptism_session',
+				'baptism_advance',
+				'baptism_back',
+				'baptism_pause_resume',
+				'baptism_finish',
+			],
 		},
 	]
 	self.setPresetDefinitions(sections, presets)

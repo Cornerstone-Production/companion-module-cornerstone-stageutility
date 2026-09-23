@@ -3,6 +3,7 @@ package-lock.json
 /pkg
 /*.tgz
 /dist
+/dist-test
 DEBUG-*
 /.yarn
 /.vscode

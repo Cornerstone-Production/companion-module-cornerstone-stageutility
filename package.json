@@ -12,7 +12,8 @@
     "dev": "tsc -p tsconfig.build.json --watch",
     "lint:raw": "eslint",
     "lint": "run lint:raw . && node scripts/sync-manifest.mjs --check",
-    "sync-manifest": "node scripts/sync-manifest.mjs"
+    "sync-manifest": "node scripts/sync-manifest.mjs",
+    "test": "rimraf dist-test && tsc -p tsconfig.test.json && node --test dist-test"
   },
   "license": "MIT",
   "repository": {
