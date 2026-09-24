@@ -1,4 +1,5 @@
 import type ModuleInstance from './main.js'
+import { baptismIsPaused } from './baptism.js'
 import {
 	NONE_ID,
 	firstId,
@@ -204,6 +205,82 @@ export function UpdateActions(self: ModuleInstance): void {
 					await self.api.showQr(show)
 				} catch (err) {
 					self.log('warn', `Show QR failed: ${err instanceof Error ? err.message : String(err)}`)
+				}
+			},
+		},
+
+		baptism_start: {
+			name: 'Baptism: Start',
+			options: [],
+			callback: run('Baptism start', async () => self.api.baptismStart()),
+		},
+		baptism_advance: {
+			name: 'Baptism: Advance (phase-aware — whatever the operator panel would do now)',
+			options: [],
+			callback: run('Baptism advance', async () => self.api.baptismAdvance()),
+		},
+		baptism_baptized: {
+			name: 'Baptism: Mark baptized (per-person)',
+			options: [],
+			callback: run('Baptism mark baptized', async () => self.api.baptismBaptized()),
+		},
+		baptism_start_baptisms: {
+			name: 'Baptism: Start baptisms (grouped — arms the baptism section)',
+			options: [],
+			callback: run('Baptism start baptisms', async () => self.api.baptismStartBaptisms()),
+		},
+		baptism_next: {
+			name: 'Baptism: Next',
+			options: [],
+			callback: run('Baptism next', async () => self.api.baptismNext()),
+		},
+		// One action, not two: it reads the cached baptism:state to decide which
+		// half to call, the same way the app's own baptism.pause automation
+		// action does. Idle and armed have no clock to pause — the underlying
+		// route is a no-op there, same as pressing Pause on the operator panel
+		// with nothing running.
+		baptism_pause_resume: {
+			name: 'Baptism: Pause / resume',
+			options: [],
+			callback: run('Baptism pause/resume', async () =>
+				baptismIsPaused(self.state.baptism) ? self.api.baptismResume() : self.api.baptismPause(),
+			),
+		},
+		baptism_undo: {
+			name: 'Baptism: Undo (back)',
+			options: [],
+			callback: run('Baptism undo', async () => self.api.baptismUndo()),
+		},
+		baptism_finish: {
+			name: 'Baptism: Finish',
+			options: [],
+			callback: run('Baptism finish', async () => self.api.baptismFinish()),
+		},
+		baptism_reset: {
+			name: 'Baptism: Reset',
+			options: [],
+			callback: run('Baptism reset', async () => self.api.baptismReset()),
+		},
+		baptism_set_workflow: {
+			name: 'Baptism: Set workflow (mode)',
+			options: [
+				{
+					id: 'mode',
+					type: 'dropdown',
+					label: 'Mode',
+					choices: [
+						{ id: 'per-person', label: 'Per-person' },
+						{ id: 'grouped', label: 'Grouped' },
+					],
+					default: 'grouped',
+				},
+			],
+			callback: async (event) => {
+				const mode = event.options.mode === 'per-person' ? 'per-person' : 'grouped'
+				try {
+					await self.api.baptismSetMode(mode)
+				} catch (err) {
+					self.log('warn', `Baptism set workflow failed: ${err instanceof Error ? err.message : String(err)}`)
 				}
 			},
 		},

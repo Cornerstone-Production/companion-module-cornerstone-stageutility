@@ -1,4 +1,11 @@
 import type ModuleInstance from './main.js'
+import {
+	baptismIsPaused,
+	baptismPersonLabel,
+	baptismPhaseWord,
+	baptismTestimonyMs,
+	summarizeBaptism,
+} from './baptism.js'
 import { pvpFmtDuration, stripExtension } from './pvp.js'
 
 export function UpdateVariableDefinitions(self: ModuleInstance): void {
@@ -75,6 +82,16 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		pvp_elapsed_seconds: { name: 'ProVideoPlayer clip elapsed (seconds, ticks live)' },
 		pvp_remaining_seconds: { name: 'ProVideoPlayer clip remaining (seconds, ticks live)' },
 		pvp_remaining: { name: 'ProVideoPlayer clip remaining (m:ss / h:mm:ss, ticks live)' },
+		baptism_phase: { name: 'Baptism phase (idle / armed / testimony / baptism)' },
+		baptism_segment: { name: 'Baptism current segment clock, testimony or baptism (m:ss, ticks live)' },
+		baptism_testimony: { name: "Baptism: this person's testimony once banked (m:ss)" },
+		baptism_session: { name: 'Baptism session elapsed, wall clock (m:ss, ticks live)' },
+		baptism_person: { name: 'Baptism current person ("Person 3", or "3 of 7" in grouped mode)' },
+		baptism_count: { name: 'Baptism people completed this session' },
+		baptism_paused: { name: 'Baptism timer paused (yes/no)' },
+		baptism_avg_testimony: { name: 'Baptism average testimony length (m:ss)' },
+		baptism_avg_baptism: { name: 'Baptism average baptism length (m:ss)' },
+		baptism_mode: { name: 'Baptism workflow (per-person / grouped)' },
 	})
 }
 
@@ -114,6 +131,16 @@ export function SetVariableValues(self: ModuleInstance): void {
 	const pvpLayer = st.pvpNowLayer()
 	const pvpProgress = st.pvpProgress()
 	const pvpBadge = st.pvpBadge()
+	const baptism = st.baptism
+	const baptismSummary = summarizeBaptism(baptism?.people)
+	const baptismSegmentSec = st.baptismSegmentSeconds()
+	const baptismSessionSec = st.baptismSessionSeconds()
+	const baptismTestimonyMsVal = baptismTestimonyMs(baptism)
+	// `avgTestimonyMs`/`avgBaptizeMs` are 0 both when nobody has testified or
+	// been baptized YET and when the average genuinely rounds to zero — the
+	// count is what tells those apart, the same way every other duration
+	// variable here is blank rather than "0:00" for "nothing yet".
+	const testifiedCount = baptism?.people.length ?? 0
 
 	const signalValues: Record<string, string> = {}
 	for (const [name, sig] of Object.entries(st.signals ?? {})) {
@@ -188,5 +215,15 @@ export function SetVariableValues(self: ModuleInstance): void {
 		pvp_elapsed_seconds: pvpProgress ? String(Math.round(pvpProgress.elapsedSec)) : '',
 		pvp_remaining_seconds: pvpProgress ? String(Math.round(pvpProgress.remainingSec)) : '',
 		pvp_remaining: pvpProgress ? pvpFmtDuration(pvpProgress.remainingSec) : '',
+		baptism_phase: baptismPhaseWord(baptism),
+		baptism_segment: baptismSegmentSec === null ? '' : formatDuration(baptismSegmentSec),
+		baptism_testimony: baptismTestimonyMsVal === null ? '' : formatDuration(Math.round(baptismTestimonyMsVal / 1000)),
+		baptism_session: baptismSessionSec === null ? '' : formatDuration(baptismSessionSec),
+		baptism_person: baptismPersonLabel(baptism),
+		baptism_count: String(baptismSummary.count),
+		baptism_paused: baptismIsPaused(baptism) ? 'yes' : 'no',
+		baptism_avg_testimony: testifiedCount > 0 ? formatDuration(Math.round(baptismSummary.avgTestimonyMs / 1000)) : '',
+		baptism_avg_baptism: baptismSummary.count > 0 ? formatDuration(Math.round(baptismSummary.avgBaptizeMs / 1000)) : '',
+		baptism_mode: baptism?.mode ?? '',
 	})
 }

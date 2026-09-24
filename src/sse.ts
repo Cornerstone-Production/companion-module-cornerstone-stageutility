@@ -21,6 +21,7 @@ export const SSE_EVENTS = [
 	'resi:status',
 	'youtube:status',
 	'pvp:status',
+	'baptism:state',
 ] as const
 
 export type SseEventName = (typeof SSE_EVENTS)[number]

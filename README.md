@@ -5,9 +5,10 @@ A [Bitfocus Companion](https://bitfocus.io/companion) module for
 church stage-monitor server.
 
 Drive PCO Services Live, route views onto screens, black out an output, reload
-displays, and read mic RF and battery, the PCO countdown, ProPresenter status,
-captions, people counts, ProVideoPlayer now-playing status and OBS, REAPER,
-Resi and YouTube status from a Stream Deck.
+displays, and run the baptism timer, from a Stream Deck. Read mic RF and
+battery, the PCO countdown, ProPresenter status, captions, people counts,
+ProVideoPlayer now-playing status, OBS, REAPER, Resi and YouTube status, and the
+baptism timer's own phase, clock and person.
 
 The module connects to Stage Utility over its HTTP and SSE API on the local
 network. There is no authentication — the API is LAN-only by design.
@@ -52,8 +53,14 @@ A standard `@companion-module/base` v2 module on Yarn 4 via corepack.
 yarn build      # compile src to dist
 yarn dev        # watch-compile
 yarn lint       # eslint, prettier, and the manifest check
+yarn test       # compile src (tests included) to dist-test and run it with node --test
 yarn package    # validate the manifest and build the distributable .tgz
 ```
+
+Tests live beside the source as `*.test.ts` and are excluded from `dist` (and
+so from the published package) — `yarn test` compiles them separately, to
+`dist-test`, since the module's ESM `.js` import specifiers stop `.ts` files
+running directly under Node's own type-stripping.
 
 Run a Stage Utility server to test against — `http://localhost:8788` by default
 — and point the connection's host and port at it.

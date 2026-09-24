@@ -1,4 +1,5 @@
 import type {
+	BaptismStateDTO,
 	DeviceStatusDTO,
 	HealthDTO,
 	ObsStatusDTO,
@@ -84,6 +85,9 @@ export class ApiClient {
 	async getPvp(): Promise<PvpStatusDTO> {
 		return this.request('GET', '/api/pvp/status')
 	}
+	async getBaptism(): Promise<BaptismStateDTO> {
+		return this.request('GET', '/api/baptism')
+	}
 
 	// ── Control verbs (Companion actions) ──
 	async liveNext(): Promise<unknown> {
@@ -121,5 +125,40 @@ export class ApiClient {
 	}
 	async showQr(show: boolean): Promise<unknown> {
 		return this.request('POST', '/api/show-qr', { show })
+	}
+
+	// ── Baptism timer — one method per POST /api/baptism/<action> route ──
+	async baptismStart(): Promise<unknown> {
+		return this.request('POST', '/api/baptism/start')
+	}
+	async baptismAdvance(): Promise<unknown> {
+		return this.request('POST', '/api/baptism/advance')
+	}
+	async baptismBaptized(): Promise<unknown> {
+		return this.request('POST', '/api/baptism/baptized')
+	}
+	async baptismStartBaptisms(): Promise<unknown> {
+		return this.request('POST', '/api/baptism/start-baptisms')
+	}
+	async baptismNext(): Promise<unknown> {
+		return this.request('POST', '/api/baptism/next')
+	}
+	async baptismPause(): Promise<unknown> {
+		return this.request('POST', '/api/baptism/pause')
+	}
+	async baptismResume(): Promise<unknown> {
+		return this.request('POST', '/api/baptism/resume')
+	}
+	async baptismUndo(): Promise<unknown> {
+		return this.request('POST', '/api/baptism/undo')
+	}
+	async baptismFinish(): Promise<unknown> {
+		return this.request('POST', '/api/baptism/finish')
+	}
+	async baptismReset(): Promise<unknown> {
+		return this.request('POST', '/api/baptism/reset')
+	}
+	async baptismSetMode(mode: 'per-person' | 'grouped'): Promise<unknown> {
+		return this.request('POST', '/api/baptism/mode', { mode })
 	}
 }

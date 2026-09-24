@@ -1,6 +1,13 @@
 {
 	"include": ["src/**/*.ts"],
-	"exclude": ["node_modules/**", "dist/**", "src/**/*spec.ts", "src/**/__tests__/*", "src/**/__mocks__/*"],
+	"exclude": [
+		"node_modules/**",
+		"dist/**",
+		"src/**/*spec.ts",
+		"src/**/*.test.ts",
+		"src/**/__tests__/*",
+		"src/**/__mocks__/*"
+	],
 	"compilerOptions": {
 		"target": "es2022",
 		"module": "es2022",

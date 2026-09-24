@@ -1,4 +1,5 @@
 import type {
+	BaptismStateDTO,
 	DeviceStatusDTO,
 	ObsStatusDTO,
 	OutputDTO,
@@ -16,6 +17,7 @@ import type {
 	StreamStatusDTO,
 	ViewDTO,
 } from './types.js'
+import { baptismSegmentElapsedMs } from './baptism.js'
 import { pvpBadge, pvpNowLayer, pvpProgress, type PvpBadge, type PvpProgress } from './pvp.js'
 
 // Single source of truth the SSE stream writes to; actions/feedbacks/variables
@@ -30,6 +32,7 @@ export class StateCache {
 	resi: StreamStatusDTO | null = null
 	youtube: StreamStatusDTO | null = null
 	pvp: PvpStatusDTO | null = null
+	baptism: BaptismStateDTO | null = null
 
 	// Named signals from automation rules, keyed by signal name. Each becomes a
 	// $(stage:signal_<name>) variable a Companion Trigger can act on.
@@ -101,6 +104,32 @@ export class StateCache {
 		const started = Date.parse(stream.startedAt)
 		if (!Number.isFinite(started)) return null
 		return Math.max(0, Math.round((this.serverNowMs() - started) / 1000))
+	}
+
+	/** Current segment's elapsed seconds (whichever is running — testimony or
+	 *  baptism), delivery-compensated through serverNowMs() the same way
+	 *  countdownSeconds() and streamElapsedSeconds() are. Advances on the 1s
+	 *  ticker between SSE pushes, not just when a new baptism:state frame
+	 *  arrives. Null while idle; 0 while armed — a real segment exists there,
+	 *  it has simply not started. */
+	baptismSegmentSeconds(): number | null {
+		const b = this.baptism
+		if (!b || b.phase === 'idle') return null
+		return Math.round(baptismSegmentElapsedMs(b, this.serverNowMs()) / 1000)
+	}
+
+	/** Wall-clock seconds since the session started — never paused, unlike the
+	 *  segment: a session paused through a long prayer still counts that time.
+	 *  Freezes at the finished length once the session ends rather than
+	 *  climbing further while idle before the next one starts. Null before any
+	 *  session has begun. */
+	baptismSessionSeconds(): number | null {
+		const b = this.baptism
+		if (!b?.sessionStartedAt) return null
+		const started = Date.parse(b.sessionStartedAt)
+		if (!Number.isFinite(started)) return null
+		const endMs = b.finishedAt ? Date.parse(b.finishedAt) : this.serverNowMs()
+		return Math.max(0, Math.round((endMs - started) / 1000))
 	}
 
 	/** The layer this module treats as "now playing" — see pvp.ts pvpNowLayer. */
