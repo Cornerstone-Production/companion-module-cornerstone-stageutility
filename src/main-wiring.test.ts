@@ -60,10 +60,10 @@ describe('ModuleInstance messages wiring', () => {
 
 	it('the hydrate reads GET /api/messages and GET /api/messaging into the cache', async () => {
 		const { self, calls } = instance()
-		const asked: string[] = []
+		const asked = new Set<string>()
 		globalThis.fetch = (async (url: string | URL) => {
-			asked.push(String(url))
-			const path = String(url).replace('http://stage.test', '')
+			const path = new URL(String(url)).pathname
+			asked.add(path)
 			if (path === '/api/messages') return new Response(JSON.stringify(FRAME))
 			if (path === '/api/messaging') {
 				return new Response(JSON.stringify({ groups: FRAME.groups, quickMessages: ['Wrap it up'], version: 1 }))
@@ -71,8 +71,8 @@ describe('ModuleInstance messages wiring', () => {
 			return new Response('{}')
 		}) as typeof fetch
 		await proto.hydrate.call(self)
-		assert.ok(asked.includes('http://stage.test/api/messages'))
-		assert.ok(asked.includes('http://stage.test/api/messaging'))
+		assert.ok(asked.has('/api/messages'))
+		assert.ok(asked.has('/api/messaging'))
 		const state = (self as unknown as { state: StateCache }).state
 		assert.equal(state.messages?.messages[0].text, 'Walk now')
 		// The frame in /api/messages carries a list of its own, which wins when read last.
@@ -84,8 +84,11 @@ describe('ModuleInstance messages wiring', () => {
 		const { self } = instance()
 		const state = (self as unknown as { state: StateCache }).state
 		state.applyMessages({ ...FRAME, alerts: [FRAME.messages[0]] })
+		const missing = new Set(['/api/messages', '/api/messaging'])
 		globalThis.fetch = (async (url: string | URL) =>
-			String(url).includes('/api/messag') ? new Response('', { status: 404 }) : new Response('{}')) as typeof fetch
+			missing.has(new URL(String(url)).pathname)
+				? new Response('', { status: 404 })
+				: new Response('{}')) as typeof fetch
 		await proto.hydrate.call(self)
 		assert.equal(state.messages, null)
 	})
