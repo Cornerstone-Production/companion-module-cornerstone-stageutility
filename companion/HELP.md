@@ -21,9 +21,9 @@ running" with no config loaded.
    integration panel shows the connected client.
 
 Leave **Poll fallback** at `0` unless your network cannot hold the event stream
-open. The module is event-driven; enabling the fallback re-fetches fourteen
-endpoints on every tick, so five seconds is 168 requests a minute for
-configuration that rarely changes.
+open. The module is event-driven; enabling the fallback re-fetches every
+endpoint the module reads on every tick, which is a burst of requests every few
+seconds for configuration that rarely changes.
 
 ### Actions
 
@@ -50,6 +50,9 @@ configuration that rarely changes.
 | Baptism: Finish            | Closes the in-progress person, freezes the session, and logs it                                  |
 | Baptism: Reset             | Clears back to idle (keeps the chosen workflow)                                                  |
 | Baptism: Set workflow      | Per-person or grouped                                                                            |
+| Send message               | Send text to Everyone or to chosen groups of screens, optionally as an alert                     |
+| Send quick message         | Send one of the quick messages set up in Stage Utility, to Everyone or to chosen groups          |
+| Clear alerts               | End every alert that is running                                                                  |
 
 ### Feedbacks
 
@@ -76,6 +79,7 @@ Button styling that follows the live service.
 | Baptism phase colour      | always on — tints the button by the current phase (idle / armed / testimony / baptism), so one key reads the state without a second key to explain it |
 | Baptism timer paused      | a running clock has been paused                                                                                                                       |
 | Baptism timer running     | a testimony or baptism clock is actually counting                                                                                                     |
+| Alert running             | a message alert is holding the screens, for any group or a chosen one                                                                                 |
 
 ### Variables
 
@@ -141,11 +145,24 @@ updates, off the same delivery-compensated clock `resi_elapsed` and
 - `baptism_avg_testimony`, `baptism_avg_baptism` — running averages, m:ss.
 - `baptism_mode` — `per-person` / `grouped`.
 
+**Messages** — what the stage-messages feature has sent and what is on screen
+now. Every one is empty until there is something to say, and again after the
+thread's nightly clear.
+
+- `message_last_text`, `message_last_from` — the newest message's text and who
+  sent it
+- `message_last_to` — the groups it went to, by name and comma separated;
+  `Everyone` for Everyone
+- `message_reply_text`, `message_reply_from` — the newest reply to any of today's
+  messages and who sent it
+- `message_alert_active` — `true` while any alert is running, otherwise `false`
+- `message_alert_text` — the newest running alert's text
+
 ### Presets
 
 Ready-made buttons under **Live Control**, **Routing & Displays**,
-**Monitoring & Alarms**, **Recording & Streaming**, **ProVideoPlayer** and
-**Baptisms**. Drag one onto a button to get started.
+**Monitoring & Alarms**, **Recording & Streaming**, **ProVideoPlayer**, **Baptisms** and
+**Messages**. Drag one onto a button to get started.
 
 Recording and streaming are read-only: the buttons report what OBS, REAPER, Resi
 and YouTube are doing. Starting or stopping them is done in those applications,
@@ -157,3 +174,30 @@ buttons for Advance, Back, Finish, and a combined Pause/resume that tints while
 paused. `baptism_advance` is the one to reach for on a physical key — it does
 whatever the operator panel's own main button would do, so one key runs the
 whole baptism.
+
+**Messages** ships one Send button per quick message, each sending to Everyone
+(change the groups on the button once it is placed), and a Clear alerts button
+that turns red while an alert is running.
+
+### Stage messages
+
+**Send message** takes the groups to send to (Everyone, or any number of groups),
+the text, and whether it is an alert. The text accepts variables. An alert holds
+the screens for 30 seconds. Picking Everyone together with groups sends to
+Everyone. Messages are sent from `Companion`.
+
+**Send quick message** is the same with the text chosen from Stage Utility's
+quick messages (**Settings → Messages**). The group dropdowns follow Stage
+Utility: a renamed group shows up without reconnecting. The quick message list is
+read when the connection starts and, on a server that sends it with the message
+state, follows edits live. A button stores the quick message's text, so a message
+edited afterwards keeps sending the old text until the button is changed.
+
+**Clear alerts** ends every running alert, from `Companion`; with none running
+it does nothing.
+
+**Alert running** lights while an alert is running. Its group option narrows that
+to a single group: an alert sent to that group, or to Everyone, counts.
+
+A message the server refuses, or an empty text, is logged on the connection and
+sends nothing.
