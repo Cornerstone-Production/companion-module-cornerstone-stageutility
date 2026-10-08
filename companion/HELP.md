@@ -146,8 +146,8 @@ updates, off the same delivery-compensated clock `resi_elapsed` and
 - `baptism_mode` — `per-person` / `grouped`.
 
 **Messages** — what the stage-messages feature has sent and what is on screen
-now. Every one is empty until there is something to say, and again after the
-thread's nightly clear.
+now. The text variables are empty until there is something to say, and again
+after the thread's nightly clear; `message_alert_active` reads `false` then.
 
 - `message_last_text`, `message_last_from` — the newest message's text and who
   sent it
@@ -189,8 +189,8 @@ Everyone. Messages are sent from `Companion`.
 **Send quick message** is the same with the text chosen from Stage Utility's
 quick messages (**Settings → Messages**). The group dropdowns follow Stage
 Utility: a renamed group shows up without reconnecting. The quick message list is
-read when the connection starts and, on a server that sends it with the message
-state, follows edits live. A button stores the quick message's text, so a message
+refreshed when the connection starts or restarts and whenever Stage Utility sends
+it with a messages update. A button stores the quick message's text, so a message
 edited afterwards keeps sending the old text until the button is changed.
 
 **Clear alerts** ends every running alert, from `Companion`; with none running
@@ -199,5 +199,5 @@ it does nothing.
 **Alert running** lights while an alert is running. Its group option narrows that
 to a single group: an alert sent to that group, or to Everyone, counts.
 
-A message the server refuses, or an empty text, is logged on the connection and
-sends nothing.
+A message the server refuses, such as an empty text, is logged on the
+connection with the server's reason.
