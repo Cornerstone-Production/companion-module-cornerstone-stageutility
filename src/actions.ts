@@ -1,6 +1,6 @@
 import type ModuleInstance from './main.js'
 import { baptismIsPaused } from './baptism.js'
-import { EVERYONE, FROM, sendTargets } from './messages.js'
+import { EVERYONE, FROM, sendTargets, type Picked } from './messages.js'
 import {
 	NONE_ID,
 	firstId,
@@ -30,14 +30,10 @@ export function UpdateActions(self: ModuleInstance): void {
 	const targets = messageTargetChoices(self.state)
 	const quickMessages = quickMessageChoices(self.state)
 
-	/** Post a message. Refuses here, with the reason in the log, what the server
-	 *  would only answer with a bare 400. */
-	const send = async (picked: (string | number)[], text: string, alert: boolean): Promise<unknown> => {
-		const to = sendTargets(picked)
-		if (to === null) throw new Error('no group is picked')
-		if (text.trim() === '') throw new Error('the text is empty')
-		return self.api.sendMessage({ to, text, alert, from: FROM })
-	}
+	/** Post a message. The server's rules (empty text, no group, too long) are
+	 *  its own: it refuses with the reason and the log carries it. */
+	const send = async (picked: Picked, text: string, alert: boolean): Promise<unknown> =>
+		self.api.sendMessage({ to: sendTargets(picked), text, alert, from: FROM })
 
 	self.setActionDefinitions({
 		live_next: {

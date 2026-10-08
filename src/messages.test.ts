@@ -48,6 +48,8 @@ type Request = { method: string; url: string; body: unknown }
  *  is the real one, with `fetch` replaced, so a request is checked as sent. */
 function harness() {
 	const requests: Request[] = []
+	// What the stand-in server answers; a test swaps it to make one refuse.
+	let reply = (_method: string, _url: string): Response => new Response('{}', { status: 200 })
 	const logs: string[] = []
 	const realFetch = globalThis.fetch
 	globalThis.fetch = (async (url: string | URL, init?: RequestInit) => {
@@ -56,7 +58,7 @@ function harness() {
 			url: String(url),
 			body: typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
 		})
-		return new Response('{}', { status: 200 })
+		return reply(init?.method ?? 'GET', String(url))
 	}) as typeof fetch
 	restore = () => {
 		globalThis.fetch = realFetch
@@ -81,6 +83,7 @@ function harness() {
 	const mod = self as unknown as ModuleInstance
 	return {
 		self,
+		answerWith: (fn: (method: string, url: string) => Response) => (reply = fn),
 		requests,
 		logs,
 		out,
@@ -276,14 +279,26 @@ describe('message actions', () => {
 		assert.deepEqual((h.requests[0].body as { to: string[] }).to, ['everyone'])
 	})
 
-	it('message_send posts nothing, and says why, for empty text or no group', async () => {
+	it('message_send logs the reason the server refused it for, not just the status', async () => {
 		const h = harness()
+		h.answerWith(() => new Response(JSON.stringify({ error: 'text cannot be empty' }), { status: 400 }))
 		await press(h, 'message_send', { groups: ['everyone'], text: '   ', alert: false })
+		assert.equal(h.requests.length, 1, 'the server is the one that refuses')
+		assert.match(h.logs[0], /HTTP 400: text cannot be empty/)
+	})
+
+	it('message_send posts an empty list for no group, and logs the server reason', async () => {
+		const h = harness()
+		h.answerWith(() => new Response(JSON.stringify({ error: 'to must name a group' }), { status: 400 }))
 		await press(h, 'message_send', { groups: [], text: 'Hi', alert: false })
-		assert.deepEqual(h.requests, [])
-		assert.equal(h.logs.length, 2)
-		assert.match(h.logs[0], /the text is empty/)
-		assert.match(h.logs[1], /no group is picked/)
+		assert.deepEqual((h.requests[0].body as { to: string[] }).to, [])
+		assert.match(h.logs[0], /HTTP 400: to must name a group/)
+	})
+
+	it('message_send takes a bare group id, as an expression delivers it', async () => {
+		const h = harness()
+		await press(h, 'message_send', { groups: GREEN, text: 'Hi', alert: false })
+		assert.deepEqual((h.requests[0].body as { to: string[] }).to, [GREEN])
 	})
 
 	it('message_send_quick posts the chosen quick message to the chosen groups', async () => {
@@ -335,6 +350,23 @@ describe('message actions', () => {
 		await press(h, 'message_clear_alerts', {})
 		assert.equal(calls.length, 2, 'the second alert is still cleared')
 		assert.match(h.logs[0], /1 of 2 failed/)
+	})
+})
+
+describe('ApiClient refusals', () => {
+	it('append the reason of a JSON error body to the status', async () => {
+		const h = harness()
+		h.answerWith(() => new Response(JSON.stringify({ error: 'no group has the id g-1234' }), { status: 400 }))
+		await assert.rejects(
+			new ApiClient('http://stage.test').sendMessage({ to: [], text: 'x', alert: false, from: 'Companion' }),
+			/POST \/api\/messages → HTTP 400: no group has the id g-1234$/,
+		)
+	})
+
+	it('keep to the status when the body is not a JSON error', async () => {
+		const h = harness()
+		h.answerWith(() => new Response('<html>bad gateway</html>', { status: 502 }))
+		await assert.rejects(new ApiClient('http://stage.test').getMessages(), /GET \/api\/messages → HTTP 502$/)
 	})
 })
 

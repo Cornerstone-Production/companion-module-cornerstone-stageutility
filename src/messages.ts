@@ -53,13 +53,16 @@ export function alertRunning(state: MessagesStateDTO | null, groupId: string | n
 	return alerts.some((a) => a.to.includes(EVERYONE) || a.to.includes(groupId))
 }
 
+/** What a groups option arrives as: a list, or a bare id from an expression. */
+export type Picked = string | number | (string | number)[]
+
 /**
  * The `to` a send posts. Everyone on its own: the server takes it as the whole
  * list or not at all, and a button that ticked Everyone and a group means
- * Everyone. Null when nothing is picked.
+ * Everyone. Nothing picked is left as an empty list for the server to refuse
+ * with its reason.
  */
-export function sendTargets(picked: (string | number)[]): string[] | null {
-	const ids = [...new Set(picked.map(String))]
-	if (ids.length === 0) return null
+export function sendTargets(picked: Picked): string[] {
+	const ids = [...new Set((Array.isArray(picked) ? picked : [picked]).map(String))]
 	return ids.includes(EVERYONE) ? [EVERYONE] : ids
 }

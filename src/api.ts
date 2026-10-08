@@ -22,6 +22,17 @@ import type {
 
 const TIMEOUT_MS = 8000
 
+/** The server's own reason for a refusal: the `error` of a JSON body, else none. */
+async function refusalReason(res: Response): Promise<string> {
+	try {
+		const body = JSON.parse(await res.text()) as { error?: unknown }
+		return typeof body.error === 'string' ? body.error : ''
+	} catch {
+		// Not JSON, or the body never arrived: the status line alone is what there is.
+		return ''
+	}
+}
+
 // Thin HTTP client for the Stage Utility REST API (LAN, no auth). All control
 // verbs throw on a non-2xx response so action callbacks can log failures.
 export class ApiClient {
@@ -34,7 +45,10 @@ export class ApiClient {
 			body: body !== undefined ? JSON.stringify(body) : undefined,
 			signal: AbortSignal.timeout(TIMEOUT_MS),
 		})
-		if (!res.ok) throw new Error(`${method} ${path} → HTTP ${res.status}`)
+		if (!res.ok) {
+			const reason = await refusalReason(res)
+			throw new Error(`${method} ${path} → HTTP ${res.status}${reason ? `: ${reason}` : ''}`)
+		}
 		const text = await res.text()
 		return (text ? JSON.parse(text) : undefined) as T
 	}
