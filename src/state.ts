@@ -19,6 +19,7 @@ import type {
 	StreamStatusDTO,
 	ViewDTO,
 } from './types.js'
+import { isMessagesFrame } from './messages.js'
 import { baptismSegmentElapsedMs } from './baptism.js'
 import { pvpBadge, pvpNowLayer, pvpProgress, type PvpBadge, type PvpProgress } from './pvp.js'
 
@@ -49,6 +50,8 @@ export class StateCache {
 	presets: PresetDTO[] = []
 	channels: DeviceStatusDTO[] = []
 	quickMessages: string[] = []
+	/** messages:state frames applied so far; a hydrate compares it to drop a stale snapshot. */
+	messagesFrames = 0
 
 	// Last final caption line + when we saw it (for the captions-idle feedback).
 	lastCaptionText = ''
@@ -69,6 +72,7 @@ export class StateCache {
 	 * rename a group.
 	 */
 	applyMessages(frame: MessagesStateDTO): { choicesChanged: boolean; presetsChanged: boolean } {
+		if (!isMessagesFrame(frame)) return { choicesChanged: false, presetsChanged: false }
 		const groupsBefore = JSON.stringify(this.messages?.groups ?? [])
 		const quickBefore = JSON.stringify(this.quickMessages)
 		this.messages = frame

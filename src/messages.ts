@@ -2,7 +2,8 @@
 // frame, which alerts a feedback counts, and the body a send posts. Nothing here
 // touches the module instance, so each rule can be tested without one.
 
-import type { MessageGroupDTO, MessagesStateDTO, StageMessageDTO } from './types.js'
+import type { StateCache } from './state.js'
+import type { MessageGroupDTO, MessagesStateDTO, MessagingConfigDTO, StageMessageDTO } from './types.js'
 
 /** The built-in target that reaches every screen. Mirrors the app's EVERYONE. */
 export const EVERYONE = 'everyone'
@@ -65,4 +66,69 @@ export type Picked = string | number | (string | number)[]
 export function sendTargets(picked: Picked): string[] {
 	const ids = [...new Set((Array.isArray(picked) ? picked : [picked]).map(String))]
 	return ids.includes(EVERYONE) ? [EVERYONE] : ids
+}
+
+/** A messages:state frame, or the answer to GET /api/messages: anything else
+ *  (a null payload that failed to parse) is not applied. */
+export function isMessagesFrame(data: unknown): data is MessagesStateDTO {
+	const frame = data as Partial<MessagesStateDTO> | null
+	return (
+		!!frame &&
+		typeof frame === 'object' &&
+		Array.isArray(frame.groups) &&
+		Array.isArray(frame.messages) &&
+		Array.isArray(frame.alerts)
+	)
+}
+
+/** The instance methods the messages handlers call, and no more, so each can be
+ *  tested without a running module. */
+export interface HydrateHost {
+	state: StateCache
+	updatePresets: () => void
+}
+export interface FrameHost extends HydrateHost {
+	refreshDefinitions: () => void
+	refreshVariables: () => void
+	checkFeedbacks: (id: 'message_alert_running') => void
+}
+
+/**
+ * A messages:state frame. Dropdowns are redefined only when a group or the quick
+ * list moved, presets only when the quick list did; variables and the alert light
+ * follow every frame.
+ */
+export function applyMessagesFrame(host: FrameHost, data: unknown): void {
+	if (!isMessagesFrame(data)) return
+	host.state.messagesFrames++
+	const { choicesChanged, presetsChanged } = host.state.applyMessages(data)
+	if (choicesChanged) host.refreshDefinitions()
+	if (presetsChanged) host.updatePresets()
+	host.refreshVariables()
+	host.checkFeedbacks('message_alert_running')
+}
+
+/**
+ * The messages part of a hydrate. `framesBefore` is the frame count read before
+ * the requests went out: a frame that landed while they were in flight is newer
+ * than the snapshot, which is then dropped rather than allowed to overwrite it.
+ * A snapshot that could not be read clears what the last server said, so its
+ * alerts do not stay lit. The caller redefines dropdowns and re-reads variables
+ * after, as it does for everything it hydrates; presets are only redefined here.
+ */
+export function applyMessagesHydrate(
+	host: HydrateHost,
+	fetched: { messaging: MessagingConfigDTO | null; messages: MessagesStateDTO | null; framesBefore: number },
+): void {
+	const { state } = host
+	let presetsChanged = false
+	if (fetched.messaging) presetsChanged = state.applyMessaging(fetched.messaging).presetsChanged
+	if (state.messagesFrames === fetched.framesBefore) {
+		if (isMessagesFrame(fetched.messages)) {
+			presetsChanged = state.applyMessages(fetched.messages).presetsChanged || presetsChanged
+		} else {
+			state.messages = null
+		}
+	}
+	if (presetsChanged) host.updatePresets()
 }
