@@ -2,6 +2,9 @@ import type {
 	BaptismStateDTO,
 	DeviceStatusDTO,
 	HealthDTO,
+	MessagesStateDTO,
+	MessagingConfigDTO,
+	StageMessageDTO,
 	ObsStatusDTO,
 	OutputDTO,
 	PcoLiveDTO,
@@ -88,6 +91,12 @@ export class ApiClient {
 	async getBaptism(): Promise<BaptismStateDTO> {
 		return this.request('GET', '/api/baptism')
 	}
+	async getMessages(): Promise<MessagesStateDTO> {
+		return this.request('GET', '/api/messages')
+	}
+	async getMessaging(): Promise<MessagingConfigDTO> {
+		return this.request('GET', '/api/messaging')
+	}
 
 	// ── Control verbs (Companion actions) ──
 	async liveNext(): Promise<unknown> {
@@ -160,5 +169,13 @@ export class ApiClient {
 	}
 	async baptismSetMode(mode: 'per-person' | 'grouped'): Promise<unknown> {
 		return this.request('POST', '/api/baptism/mode', { mode })
+	}
+
+	// ── Stage messages ──
+	async sendMessage(body: { to: string[]; text: string; alert: boolean; from: string }): Promise<StageMessageDTO> {
+		return this.request('POST', '/api/messages', body)
+	}
+	async clearMessageAlert(id: string, from: string): Promise<unknown> {
+		return this.request('POST', `/api/messages/${encodeURIComponent(id)}/clear-alert`, { from })
 	}
 }

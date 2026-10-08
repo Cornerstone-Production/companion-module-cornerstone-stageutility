@@ -222,6 +222,9 @@ export type StageUtilityActions = {
 	baptism_finish: { options: Record<string, never> }
 	baptism_reset: { options: Record<string, never> }
 	baptism_set_workflow: { options: { mode: string | number } }
+	message_send: { options: { groups: (string | number)[]; text: string; alert: boolean } }
+	message_send_quick: { options: { quick: string | number; groups: (string | number)[]; alert: boolean } }
+	message_clear_alerts: { options: Record<string, never> }
 }
 
 /** Options carried by each feedback id, and the kind of feedback it is. */
@@ -251,6 +254,51 @@ export type StageUtilityFeedbacks = {
 	baptism_phase_color: { type: 'advanced'; options: Record<string, never> }
 	baptism_paused: { type: 'boolean'; options: Record<string, never> }
 	baptism_running: { type: 'boolean'; options: Record<string, never> }
+	message_alert_running: { type: 'boolean'; options: { group: string | number } }
+}
+
+// Stage messages (GET /api/messages, channel messages:state). Mirror of the
+// app's main/types/messages.ts, minus what this module never reads.
+export interface MessageGroupDTO {
+	id: string
+	name: string
+}
+
+export interface MessageReplyDTO {
+	id: string
+	/** Server clock, ms. */
+	at: number
+	from: string
+	text: string
+}
+
+export interface StageMessageDTO {
+	id: string
+	/** Server clock, ms. */
+	at: number
+	/** Group ids, or exactly `['everyone']`. */
+	to: string[]
+	text: string
+	alert: boolean
+	from: string
+	replies: MessageReplyDTO[]
+}
+
+export interface MessagesStateDTO {
+	groups: MessageGroupDTO[]
+	/** Today's, oldest first. */
+	messages: StageMessageDTO[]
+	/** Every message whose alert is still running, newest first. */
+	alerts: StageMessageDTO[]
+	/** Not carried by every server: where the frame has it, it is live. */
+	quickMessages?: string[]
+}
+
+// GET /api/messaging. The quick messages live here on every server; only newer
+// ones also put them on the messages:state frame.
+export interface MessagingConfigDTO {
+	groups: MessageGroupDTO[]
+	quickMessages: string[]
 }
 
 /** The record v2's `InstanceBase` is parameterised on. */

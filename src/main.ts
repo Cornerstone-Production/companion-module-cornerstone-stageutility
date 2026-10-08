@@ -10,6 +10,7 @@ import { UpdatePresets } from './presets.js'
 import { UpgradeScripts } from './upgrades.js'
 import type {
 	BaptismStateDTO,
+	MessagesStateDTO,
 	ObsStatusDTO,
 	PcoLiveDTO,
 	PeopleCountDTO,
@@ -45,6 +46,7 @@ const ALL_FEEDBACKS = [
 	'baptism_phase_color',
 	'baptism_paused',
 	'baptism_running',
+	'message_alert_running',
 ] as const
 
 export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTypes> {
@@ -149,6 +151,8 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 			youtube,
 			pvp,
 			baptism,
+			messaging,
+			messages,
 		] = await Promise.all([
 			this.api.getState(),
 			this.api.getViews(),
@@ -167,6 +171,8 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 			this.api.getYouTube().catch(() => null),
 			this.api.getPvp().catch(() => null),
 			this.api.getBaptism().catch(() => null),
+			this.api.getMessaging().catch(() => null),
+			this.api.getMessages().catch(() => null),
 		])
 		this.state.stage = stage
 		this.state.views = views
@@ -183,6 +189,14 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 		if (youtube) this.state.youtube = youtube
 		if (pvp) this.state.pvp = pvp
 		if (baptism) this.state.baptism = baptism
+		// Messaging first: the quick messages it carries are the ones a state from
+		// a server that does not put them on its frames has to leave alone.
+		const presetsChanged = [
+			messaging && this.state.applyMessaging(messaging).presetsChanged,
+			messages && this.state.applyMessages(messages).presetsChanged,
+		].some(Boolean)
+		// The presets are one per quick message, so a changed list redefines them.
+		if (presetsChanged) this.updatePresets()
 		if (stage.serviceTypeId) {
 			this.state.plans = await this.api.getPlans(stage.serviceTypeId).catch(() => [])
 		}
@@ -299,6 +313,16 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 				SetVariableValues(this)
 				this.checkFeedbacks('baptism_phase_color', 'baptism_paused', 'baptism_running')
 				break
+			case 'messages:state': {
+				// The groups and quick messages feed dropdowns and presets; redefine
+				// those only when they moved, not on every message sent.
+				const { choicesChanged, presetsChanged } = this.state.applyMessages(data as MessagesStateDTO)
+				if (choicesChanged) this.refreshDefinitions()
+				if (presetsChanged) this.updatePresets()
+				SetVariableValues(this)
+				this.checkFeedbacks('message_alert_running')
+				break
+			}
 			case 'wireless:connections-changed':
 				void this.api
 					.getChannels()

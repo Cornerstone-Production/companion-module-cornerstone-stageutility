@@ -1,11 +1,14 @@
 import type ModuleInstance from './main.js'
 import { baptismIsPaused } from './baptism.js'
+import { EVERYONE, FROM, sendTargets } from './messages.js'
 import {
 	NONE_ID,
 	firstId,
+	messageTargetChoices,
 	outputChoices,
 	planChoices,
 	presetChoices,
+	quickMessageChoices,
 	serviceTypeChoices,
 	viewChoices,
 } from './choices.js'
@@ -24,6 +27,17 @@ export function UpdateActions(self: ModuleInstance): void {
 	const serviceTypes = serviceTypeChoices(self.state)
 	const plans = planChoices(self.state)
 	const presets = presetChoices(self.state)
+	const targets = messageTargetChoices(self.state)
+	const quickMessages = quickMessageChoices(self.state)
+
+	/** Post a message. Refuses here, with the reason in the log, what the server
+	 *  would only answer with a bare 400. */
+	const send = async (picked: (string | number)[], text: string, alert: boolean): Promise<unknown> => {
+		const to = sendTargets(picked)
+		if (to === null) throw new Error('no group is picked')
+		if (text.trim() === '') throw new Error('the text is empty')
+		return self.api.sendMessage({ to, text, alert, from: FROM })
+	}
 
 	self.setActionDefinitions({
 		live_next: {
@@ -283,6 +297,67 @@ export function UpdateActions(self: ModuleInstance): void {
 					self.log('warn', `Baptism set workflow failed: ${err instanceof Error ? err.message : String(err)}`)
 				}
 			},
+		},
+
+		message_send: {
+			name: 'Send message',
+			options: [
+				{
+					id: 'groups',
+					type: 'multidropdown',
+					label: 'Groups',
+					choices: targets,
+					default: [EVERYONE],
+					minSelection: 1,
+				},
+				{ id: 'text', type: 'textinput', label: 'Text', default: '', useVariables: true },
+				{ id: 'alert', type: 'checkbox', label: 'Alert', default: false },
+			],
+			callback: async (event) =>
+				run('Message send', async () =>
+					send(event.options.groups, String(event.options.text ?? ''), event.options.alert === true),
+				)(),
+		},
+		message_send_quick: {
+			name: 'Send quick message',
+			options: [
+				{
+					id: 'quick',
+					type: 'dropdown',
+					label: 'Quick message',
+					choices: quickMessages,
+					default: firstId(quickMessages),
+				},
+				{
+					id: 'groups',
+					type: 'multidropdown',
+					label: 'Groups',
+					choices: targets,
+					default: [EVERYONE],
+					minSelection: 1,
+				},
+				{ id: 'alert', type: 'checkbox', label: 'Alert', default: false },
+			],
+			callback: async (event) =>
+				run('Message send quick', async () =>
+					send(event.options.groups, String(event.options.quick ?? ''), event.options.alert === true),
+				)(),
+		},
+		// One request per running alert, all of them tried: a failed clear must not
+		// leave the alerts after it running, and the failures are all reported.
+		message_clear_alerts: {
+			name: 'Clear alerts',
+			options: [],
+			callback: run('Message clear alerts', async () => {
+				const running = self.state.messages?.alerts ?? []
+				const results = await Promise.allSettled(running.map(async (a) => self.api.clearMessageAlert(a.id, FROM)))
+				const failed = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+				if (failed.length > 0) {
+					throw new Error(
+						`${failed.length} of ${running.length} failed: ${failed.map((f) => String(f.reason)).join('; ')}`,
+					)
+				}
+			}),
 		},
 	})
 }

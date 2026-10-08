@@ -1,7 +1,16 @@
 import { combineRgb } from '@companion-module/base'
 import type ModuleInstance from './main.js'
 import { baptismIsPaused, baptismPhaseWord } from './baptism.js'
-import { ANY_ID, channelChoices, firstId, outputChoices, peopleZoneChoices, viewChoices } from './choices.js'
+import { alertRunning } from './messages.js'
+import {
+	ANY_ID,
+	alertGroupChoices,
+	channelChoices,
+	firstId,
+	outputChoices,
+	peopleZoneChoices,
+	viewChoices,
+} from './choices.js'
 
 const RED = combineRgb(200, 30, 30)
 const YELLOW = combineRgb(220, 180, 0)
@@ -26,6 +35,7 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 	const outputs = outputChoices(self.state)
 	const views = viewChoices(self.state, false)
 	const peopleZones = peopleZoneChoices(self.state)
+	const alertGroups = alertGroupChoices(self.state)
 
 	self.setFeedbackDefinitions({
 		signal_is: {
@@ -348,6 +358,17 @@ export function UpdateFeedbacks(self: ModuleInstance): void {
 				const b = self.state.baptism
 				return !!b && b.phase !== 'idle' && !b.armed && !!b.segmentStartedAt
 			},
+		},
+		// An alert holds the screens for 30 seconds, so this is the light that says
+		// one is up. The group filter asks about one group's screens, which also
+		// show whatever was sent to Everyone.
+		message_alert_running: {
+			name: 'Alert running',
+			type: 'boolean',
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			options: [{ id: 'group', type: 'dropdown', label: 'Group', choices: alertGroups, default: ANY_ID }],
+			callback: (fb) =>
+				alertRunning(self.state.messages, fb.options.group === ANY_ID ? null : String(fb.options.group)),
 		},
 	})
 }

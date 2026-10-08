@@ -2,6 +2,7 @@ import { combineRgb, type CompanionPresetDefinitions, type CompanionPresetSectio
 import type ModuleInstance from './main.js'
 import type { StageUtilityInstanceTypes } from './types.js'
 import { ANY_ID } from './choices.js'
+import { EVERYONE } from './messages.js'
 
 const ID = 'cornerstone-stageutility'
 const v = (name: string) => `$(${ID}:${name})`
@@ -13,6 +14,9 @@ const GREEN = combineRgb(0, 150, 70)
 const WHITE = combineRgb(255, 255, 255)
 const BLACK = combineRgb(0, 0, 0)
 const DARK = combineRgb(0, 0, 0)
+
+/** A button has room for a few words; the preset's name carries the whole text. */
+const QUICK_LABEL_MAX = 40
 
 export function UpdatePresets(self: ModuleInstance): void {
 	const presets: CompanionPresetDefinitions<StageUtilityInstanceTypes> = {
@@ -288,6 +292,41 @@ export function UpdatePresets(self: ModuleInstance): void {
 		},
 	}
 
+	// One Send button per quick message, to Everyone; the groups are editable
+	// once it is placed. A changed list of quick messages redefines these.
+	const quickIds: string[] = []
+	self.state.quickMessages.forEach((text, i) => {
+		const id = `message_quick_${i + 1}`
+		quickIds.push(id)
+		presets[id] = {
+			type: 'simple',
+			name: `Message: send "${text}"`,
+			style: {
+				text: text.length > QUICK_LABEL_MAX ? `${text.slice(0, QUICK_LABEL_MAX - 1)}…` : text,
+				size: 'auto',
+				color: WHITE,
+				bgcolor: DARK,
+				show_topbar: false,
+			},
+			steps: [
+				{
+					down: [{ actionId: 'message_send_quick', options: { quick: text, groups: [EVERYONE], alert: false } }],
+					up: [],
+				},
+			],
+			feedbacks: [],
+		}
+	})
+	presets.message_clear_alerts = {
+		type: 'simple',
+		name: 'Message: clear alerts (red while one runs)',
+		style: { text: 'CLEAR\\nALERTS', size: 'auto', color: WHITE, bgcolor: DARK, show_topbar: false },
+		steps: [{ down: [{ actionId: 'message_clear_alerts', options: {} }], up: [] }],
+		feedbacks: [
+			{ feedbackId: 'message_alert_running', options: { group: ANY_ID }, style: { bgcolor: RED, color: WHITE } },
+		],
+	}
+
 	// v2 takes the grouping separately: sections reference preset ids, rather
 	// than each preset naming its own category.
 	const sections: CompanionPresetSection<StageUtilityInstanceTypes>[] = [
@@ -322,6 +361,7 @@ export function UpdatePresets(self: ModuleInstance): void {
 				'baptism_finish',
 			],
 		},
+		{ id: 'messages', name: 'Messages', definitions: [...quickIds, 'message_clear_alerts'] },
 	]
 	self.setPresetDefinitions(sections, presets)
 }
