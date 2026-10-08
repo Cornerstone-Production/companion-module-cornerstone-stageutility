@@ -141,6 +141,25 @@ describe('message variables', () => {
 		assert.equal(h.variables().message_last_to, 'Everyone')
 	})
 
+	it('read the later of two messages sent at the same millisecond', () => {
+		const h = harness()
+		h.self.state.applyMessages(
+			frame({
+				messages: [
+					msg({ id: '1'.repeat(16), at: 5, text: 'earlier in the list' }),
+					msg({ id: '2'.repeat(16), at: 5, text: 'later in the list' }),
+				],
+			}),
+		)
+		assert.equal(h.variables().message_last_text, 'later in the list')
+	})
+
+	it('name a group that no longer exists as removed, not as nothing', () => {
+		const h = harness()
+		h.self.state.applyMessages(frame({ messages: [msg({ to: [GREEN, 'g-99999999'] })] }))
+		assert.equal(h.variables().message_last_to, 'Green room, (removed group)')
+	})
+
 	const empty = {
 		message_last_text: '',
 		message_last_from: '',
@@ -237,6 +256,23 @@ describe('dropdowns follow the groups', () => {
 		h.self.state.applyMessages(frame())
 		const applied = h.self.state.applyMessages(frame({ messages: [msg()] }))
 		assert.deepEqual(applied, { choicesChanged: false, presetsChanged: false })
+	})
+
+	it('offer Everyone as the default group on both send actions', () => {
+		const h = harness()
+		const defaultOf = (id: string): unknown =>
+			h.actions()[id].options.find((o: { id: string }) => o.id === 'groups').default
+		assert.deepEqual(defaultOf('message_send'), ['everyone'])
+		assert.deepEqual(defaultOf('message_send_quick'), ['everyone'])
+	})
+
+	it('offer a quick message once however many times it is listed', () => {
+		const h = harness()
+		h.self.state.applyMessaging({ groups: [], quickMessages: ['Walk now', '2 minutes', 'Walk now'] })
+		assert.deepEqual(
+			h.actions().message_send_quick.options[0].choices.map((c: { id: string }) => c.id),
+			['Walk now', '2 minutes'],
+		)
 	})
 
 	it('list the quick messages from GET /api/messaging, and from a frame that carries them', () => {
@@ -371,6 +407,18 @@ describe('ApiClient refusals', () => {
 })
 
 describe('message presets', () => {
+	it('cut a long quick message to 40 characters on the button, and name the preset with all of it', () => {
+		const h = harness()
+		const long = 'x'.repeat(60)
+		h.self.state.applyMessaging({ groups: [], quickMessages: [long, 'Short'] })
+		const { defs } = h.presets()
+		assert.equal(defs.message_quick_1.style.text, `${'x'.repeat(39)}…`)
+		assert.equal(defs.message_quick_1.style.text.length, 40)
+		assert.ok(defs.message_quick_1.name.includes(long))
+		assert.equal(defs.message_quick_2.style.text, 'Short')
+		assert.equal(defs.message_quick_1.steps[0].down[0].options.quick, long, 'the action still sends all of it')
+	})
+
 	it('make one Send button per quick message, to Everyone, and a Clear alerts button', () => {
 		const h = harness()
 		h.self.state.applyMessaging({ groups: [], quickMessages: ['Walk now', '2 minutes'] })
