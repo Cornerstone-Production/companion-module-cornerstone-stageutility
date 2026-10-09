@@ -6,6 +6,7 @@ import {
 	baptismTestimonyMs,
 	summarizeBaptism,
 } from './baptism.js'
+import { messageVariableValues } from './messages.js'
 import { pvpFmtDuration, stripExtension } from './pvp.js'
 
 export function UpdateVariableDefinitions(self: ModuleInstance): void {
@@ -92,6 +93,13 @@ export function UpdateVariableDefinitions(self: ModuleInstance): void {
 		baptism_avg_testimony: { name: 'Baptism average testimony length (m:ss)' },
 		baptism_avg_baptism: { name: 'Baptism average baptism length (m:ss)' },
 		baptism_mode: { name: 'Baptism workflow (per-person / grouped)' },
+		message_last_text: { name: 'Message: newest text' },
+		message_last_from: { name: 'Message: newest sent by' },
+		message_last_to: { name: 'Message: newest sent to (groups by name)' },
+		message_reply_text: { name: 'Message: newest reply text' },
+		message_reply_from: { name: 'Message: newest reply from' },
+		message_alert_active: { name: 'Message: an alert is running (true/false)' },
+		message_alert_text: { name: 'Message: running alert text' },
 	})
 }
 
@@ -225,5 +233,6 @@ export function SetVariableValues(self: ModuleInstance): void {
 		baptism_avg_testimony: testifiedCount > 0 ? formatDuration(Math.round(baptismSummary.avgTestimonyMs / 1000)) : '',
 		baptism_avg_baptism: baptismSummary.count > 0 ? formatDuration(Math.round(baptismSummary.avgBaptizeMs / 1000)) : '',
 		baptism_mode: baptism?.mode ?? '',
+		...messageVariableValues(st.messages),
 	})
 }

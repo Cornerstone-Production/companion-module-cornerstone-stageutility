@@ -1,5 +1,7 @@
 import type {
 	BaptismStateDTO,
+	MessagesStateDTO,
+	MessagingConfigDTO,
 	DeviceStatusDTO,
 	ObsStatusDTO,
 	OutputDTO,
@@ -17,6 +19,7 @@ import type {
 	StreamStatusDTO,
 	ViewDTO,
 } from './types.js'
+import { isMessagesFrame } from './messages.js'
 import { baptismSegmentElapsedMs } from './baptism.js'
 import { pvpBadge, pvpNowLayer, pvpProgress, type PvpBadge, type PvpProgress } from './pvp.js'
 
@@ -33,6 +36,7 @@ export class StateCache {
 	youtube: StreamStatusDTO | null = null
 	pvp: PvpStatusDTO | null = null
 	baptism: BaptismStateDTO | null = null
+	messages: MessagesStateDTO | null = null
 
 	// Named signals from automation rules, keyed by signal name. Each becomes a
 	// $(stage:signal_<name>) variable a Companion Trigger can act on.
@@ -45,6 +49,9 @@ export class StateCache {
 	plans: PlanDTO[] = []
 	presets: PresetDTO[] = []
 	channels: DeviceStatusDTO[] = []
+	quickMessages: string[] = []
+	/** messages:state frames applied so far; a hydrate compares it to drop a stale snapshot. */
+	messagesFrames = 0
 
 	// Last final caption line + when we saw it (for the captions-idle feedback).
 	lastCaptionText = ''
@@ -54,6 +61,33 @@ export class StateCache {
 	// Server/client clock skew (ms) recorded from each pco:live serverNow, so the
 	// countdown can tick locally between the ~1.5s live updates.
 	clockOffsetMs = 0
+
+	/**
+	 * Take in a messages:state frame, or GET /api/messages. The quick messages
+	 * come with it where the server puts them there and are otherwise left as
+	 * the last GET /api/messaging read them.
+	 *
+	 * Says what a dropdown or a preset is built from has changed, so the caller
+	 * redefines only then: the frame arrives on every message, and nearly none
+	 * rename a group.
+	 */
+	applyMessages(frame: MessagesStateDTO): { choicesChanged: boolean; presetsChanged: boolean } {
+		if (!isMessagesFrame(frame)) return { choicesChanged: false, presetsChanged: false }
+		const groupsBefore = JSON.stringify(this.messages?.groups ?? [])
+		const quickBefore = JSON.stringify(this.quickMessages)
+		this.messages = frame
+		if (Array.isArray(frame.quickMessages)) this.quickMessages = frame.quickMessages
+		const presetsChanged = JSON.stringify(this.quickMessages) !== quickBefore
+		return { choicesChanged: presetsChanged || JSON.stringify(frame.groups) !== groupsBefore, presetsChanged }
+	}
+
+	/** Take in GET /api/messaging. Same answer as {@link applyMessages}. */
+	applyMessaging(config: MessagingConfigDTO): { choicesChanged: boolean; presetsChanged: boolean } {
+		const quickBefore = JSON.stringify(this.quickMessages)
+		if (Array.isArray(config.quickMessages)) this.quickMessages = config.quickMessages
+		const changed = JSON.stringify(this.quickMessages) !== quickBefore
+		return { choicesChanged: changed, presetsChanged: changed }
+	}
 
 	/** Adjusted "server now" in epoch ms, using the last recorded skew. */
 	serverNowMs(): number {

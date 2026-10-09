@@ -8,6 +8,8 @@ import { UpdateFeedbacks } from './feedbacks.js'
 import { SetVariableValues, UpdateVariableDefinitions } from './variables.js'
 import { UpdatePresets } from './presets.js'
 import { UpgradeScripts } from './upgrades.js'
+import { ALL_FEEDBACKS } from './feedback-ids.js'
+import { applyMessagesFrame, applyMessagesHydrate, type FrameHost } from './messages.js'
 import type {
 	BaptismStateDTO,
 	ObsStatusDTO,
@@ -24,28 +26,6 @@ import type {
 } from './types.js'
 
 const RETRY_MS = 5000
-
-const ALL_FEEDBACKS = [
-	'countdown_overtime',
-	'mic_battery_low',
-	'mic_offline',
-	'propresenter_disconnected',
-	'plan_mode_manual',
-	'output_shows_view',
-	'output_blackout',
-	'captions_idle',
-	'occupancy_over',
-	'people_count_text',
-	'obs_active',
-	'reaper_recording',
-	'stream_live',
-	'integration_disconnected',
-	'pvp_playing',
-	'pvp_remaining_under',
-	'baptism_phase_color',
-	'baptism_paused',
-	'baptism_running',
-] as const
 
 export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTypes> {
 	config!: ModuleConfig
@@ -133,6 +113,7 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 
 	/** Pull every list + live snapshot into the cache. */
 	private async hydrate(): Promise<void> {
+		const messagesFramesBefore = this.state.messagesFrames
 		const [
 			stage,
 			views,
@@ -149,6 +130,8 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 			youtube,
 			pvp,
 			baptism,
+			messaging,
+			messages,
 		] = await Promise.all([
 			this.api.getState(),
 			this.api.getViews(),
@@ -167,6 +150,8 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 			this.api.getYouTube().catch(() => null),
 			this.api.getPvp().catch(() => null),
 			this.api.getBaptism().catch(() => null),
+			this.api.getMessaging().catch(() => null),
+			this.api.getMessages().catch(() => null),
 		])
 		this.state.stage = stage
 		this.state.views = views
@@ -183,6 +168,9 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 		if (youtube) this.state.youtube = youtube
 		if (pvp) this.state.pvp = pvp
 		if (baptism) this.state.baptism = baptism
+		// Messaging first: the quick messages it carries are the ones a state from
+		// a server that does not put them on its frames has to leave alone.
+		applyMessagesHydrate(this, { messaging, messages, framesBefore: messagesFramesBefore })
 		if (stage.serviceTypeId) {
 			this.state.plans = await this.api.getPlans(stage.serviceTypeId).catch(() => [])
 		}
@@ -299,6 +287,9 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 				SetVariableValues(this)
 				this.checkFeedbacks('baptism_phase_color', 'baptism_paused', 'baptism_running')
 				break
+			case 'messages:state':
+				applyMessagesFrame(this.messagesHost(), data)
+				break
 			case 'wireless:connections-changed':
 				void this.api
 					.getChannels()
@@ -310,6 +301,18 @@ export default class ModuleInstance extends InstanceBase<StageUtilityInstanceTyp
 					})
 					.catch(() => undefined)
 				break
+		}
+	}
+
+	/** What the messages handlers call, in terms of this instance. They are
+	 *  separate functions so their effects can be tested without one. */
+	private messagesHost(): FrameHost {
+		return {
+			state: this.state,
+			updatePresets: () => this.updatePresets(),
+			refreshDefinitions: () => this.refreshDefinitions(),
+			refreshVariables: () => SetVariableValues(this),
+			checkFeedbacks: (id) => this.checkFeedbacks(id),
 		}
 	}
 

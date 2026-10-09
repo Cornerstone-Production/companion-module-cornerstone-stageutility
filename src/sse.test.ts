@@ -16,12 +16,20 @@ describe('SSE_EVENTS', () => {
 		)
 	})
 
+	it('subscribes to messages:state', () => {
+		assert.ok(
+			SSE_EVENTS.includes('messages:state'),
+			'messages:state is missing from SSE_EVENTS — the server will never send it',
+		)
+	})
+
 	// EXACT, sorted, one entry per line — never a bare count. Two channels added
 	// in parallel branches would still merge past a count with no conflict.
 	it('is exactly this sorted list of channels', () => {
 		assert.deepEqual([...SSE_EVENTS].sort(), [
 			'baptism:state',
 			'companion:signals',
+			'messages:state',
 			'obs:status',
 			'pco:live',
 			'people:count',
