@@ -23,10 +23,10 @@ Requires **Companion 4.3.0 or newer** — the module targets the v2 connection A
 added in that release, and will not start on anything older.
 
 Download the `.tgz` from the
-[latest release](https://github.com/Cornerstone-Production/companion-module-cornerstone-stageutility/releases)
+[latest release](https://github.com/Cornerstone-Production/companion-module-stageutility-stageutility/releases)
 and add it to Companion as a module.
 
-Then add the connection — **Cornerstone → Stage Utility** — and enter the Stage
+Then add a connection — search the list for **Stage Utility** — and enter the Stage
 Utility server's IP and port. Companion takes host and port separately and
 cannot resolve a DNS name, so use the address shown in Stage Utility under
 Settings → Integrations → Bitfocus Companion.
