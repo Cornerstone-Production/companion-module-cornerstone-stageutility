@@ -6,13 +6,15 @@
 //   - an email address that is not at a reserved example domain or a GitHub
 //     noreply address
 //   - a /Users/<name> or /home/<name> path whose name is not a placeholder
+//   - a term from the PRIVATE_TERMS secret, or a gitignored .private-terms file,
+//     one per line; the list is secret, so a finding names its index, never it
 //
 // It names no real value: it classifies by shape, so the allowlists below are
 // the only things a contributor may widen, and they hold placeholders only.
 
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 
@@ -33,8 +35,19 @@ function isPrivateIpv4(o: number[]): boolean {
 	return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254)
 }
 
+/** PRIVATE_TERMS plus a local .private-terms, lowercased, blanks dropped. */
+function privateTerms(root: string): string[] {
+	let raw = process.env.PRIVATE_TERMS ?? ''
+	const local = join(root, '.private-terms')
+	if (existsSync(local)) raw += '\n' + readFileSync(local, 'utf8')
+	return raw
+		.split('\n')
+		.map((t) => t.trim().toLowerCase())
+		.filter((t) => t !== '')
+}
+
 /** Every offence in one file's text, as `line: kind: value`. */
-export function findOffences(text: string): string[] {
+export function findOffences(text: string, terms: string[] = []): string[] {
 	const out: string[] = []
 	text.split('\n').forEach((line, i) => {
 		const at = (kind: string, value: string) => out.push(`${i + 1}: ${kind}: ${value}`)
@@ -49,6 +62,10 @@ export function findOffences(text: string): string[] {
 		for (const m of line.matchAll(HOME_PATH)) {
 			if (!PLACEHOLDER_HOME_NAMES.includes(m[1].toLowerCase())) at('home-path', m[0])
 		}
+		const lowered = line.toLowerCase()
+		terms.forEach((term, n) => {
+			if (lowered.includes(term)) at('private-term', `#${n + 1}`)
+		})
 	})
 	return out
 }
@@ -77,11 +94,16 @@ describe('public hygiene', () => {
 		assert.deepEqual(findOffences('host 192.168.1.50 and 8.8.8.8 and 1.2.3.4'), [])
 		assert.deepEqual(findOffences('a@example.com b@example.org 1+2@users.noreply.github.com'), [])
 		assert.deepEqual(findOffences('/Users/you/x /home/user/y'), [])
+
+		// A term match names the index and never echoes the term.
+		assert.deepEqual(findOffences('the Some Ministry service', ['unused', 'some ministry']), ['1: private-term: #2'])
 	})
 
 	it('finds no private address, personal email or home path in the tracked tree', () => {
 		const root = repoRoot()
 		const files = trackedFiles(root)
+		const terms = privateTerms(root)
+		if (terms.length === 0) console.log('[hygiene] PRIVATE_TERMS not set; checking generic rules only')
 		// An empty or truncated walk would pass vacuously.
 		assert.ok(files.length > 20, `walked only ${files.length} tracked files — the walk is broken`)
 
@@ -92,7 +114,7 @@ describe('public hygiene', () => {
 			const buf = readFileSync(join(root, file))
 			if (buf.subarray(0, 8192).includes(0)) continue // binary
 			scanned++
-			for (const o of findOffences(buf.toString('utf8'))) offenders.push(`${file}:${o}`)
+			for (const o of findOffences(buf.toString('utf8'), terms)) offenders.push(`${file}:${o}`)
 		}
 		assert.ok(scanned > 20, `scanned only ${scanned} text files`)
 		assert.deepEqual(offenders.sort(), [])

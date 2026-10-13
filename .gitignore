@@ -8,3 +8,6 @@ DEBUG-*
 /.yarn
 /.vscode
 .DS_Store
+
+# Private terms the hygiene test checks locally; CI reads the PRIVATE_TERMS secret.
+.private-terms

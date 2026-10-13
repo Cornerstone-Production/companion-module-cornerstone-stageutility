@@ -76,3 +76,5 @@ jobs:
           yarn test
         env:
           CI: true
+          # Private terms for src/public-hygiene.test.ts. Absent on forks; the test then checks generic rules only.
+          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
