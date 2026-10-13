@@ -71,6 +71,7 @@ function harness() {
 		variables: {} as Record<string, unknown>,
 	}
 	const self = {
+		label: 'stage',
 		state: new StateCache(),
 		api: new ApiClient('http://stage.test'),
 		log: (_level: string, message: string) => logs.push(message),

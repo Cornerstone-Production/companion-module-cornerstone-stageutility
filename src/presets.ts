@@ -4,9 +4,6 @@ import type { StageUtilityInstanceTypes } from './types.js'
 import { ANY_ID } from './choices.js'
 import { EVERYONE } from './messages.js'
 
-const ID = 'cornerstone-stageutility'
-const v = (name: string) => `$(${ID}:${name})`
-
 const RED = combineRgb(200, 30, 30)
 const YELLOW = combineRgb(220, 180, 0)
 const ORANGE = combineRgb(220, 120, 0)
@@ -19,6 +16,11 @@ const DARK = combineRgb(0, 0, 0)
 const QUICK_LABEL_MAX = 40
 
 export function UpdatePresets(self: ModuleInstance): void {
+	// A variable reference is `$(<connection label>:name)`. Companion rewrites the
+	// prefix of every reference in a preset to the connection's current label when
+	// it stores the presets and again on a rename, so the prefix is never the
+	// module id; naming the label keeps this correct without hardcoding anything.
+	const v = (name: string) => `$(${self.label}:${name})`
 	const presets: CompanionPresetDefinitions<StageUtilityInstanceTypes> = {
 		live_next: {
 			type: 'simple',
