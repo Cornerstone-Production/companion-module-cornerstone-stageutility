@@ -62,12 +62,45 @@ export function findOffences(text: string, terms: string[] = []): string[] {
 		for (const m of line.matchAll(HOME_PATH)) {
 			if (!PLACEHOLDER_HOME_NAMES.includes(m[1].toLowerCase())) at('home-path', m[0])
 		}
-		const lowered = line.toLowerCase()
-		terms.forEach((term, n) => {
-			if (lowered.includes(term)) at('private-term', `#${n + 1}`)
-		})
+	})
+	const flat = flatten(text)
+	terms.map(flattenTerm).forEach((term, n) => {
+		if (term === '') return
+		for (let i = flat.text.indexOf(term); i !== -1; i = flat.text.indexOf(term, i + 1)) {
+			out.push(`${flat.lines[i]}: private-term: #${n + 1}`)
+		}
 	})
 	return out
+}
+
+/** Whitespace and comment markers, collapsed so a term hard-wrapped across a comment is one phrase. */
+const WRAP = /[\s*#>/]/
+
+/** Lowercased, NFC, wrap runs collapsed to one space, with each character's 1-based source line. */
+function flatten(text: string): { text: string; lines: number[] } {
+	let out = ''
+	const lines: number[] = []
+	let line = 1
+	let gap = false
+	for (const ch of text.normalize('NFC').toLowerCase()) {
+		if (WRAP.test(ch)) {
+			if (!gap) {
+				out += ' '
+				lines.push(line)
+			}
+			gap = true
+		} else {
+			out += ch
+			lines.push(line)
+			gap = false
+		}
+		if (ch === '\n') line++
+	}
+	return { text: out, lines }
+}
+
+function flattenTerm(term: string): string {
+	return flatten(term).text.trim()
 }
 
 function trackedFiles(root: string): string[] {
@@ -97,6 +130,9 @@ describe('public hygiene', () => {
 
 		// A term match names the index and never echoes the term.
 		assert.deepEqual(findOffences('the Some Ministry service', ['unused', 'some ministry']), ['1: private-term: #2'])
+		// A term hard-wrapped across a comment, or with odd spacing, is still found, on its first line.
+		assert.deepEqual(findOffences('x\n// the Some\n//   Ministry  team', ['some ministry']), ['2: private-term: #1'])
+		assert.deepEqual(findOffences('the Some\u00a0Ministry', ['some ministry']), ['1: private-term: #1'])
 	})
 
 	it('finds no private address, personal email or home path in the tracked tree', () => {
