@@ -4,7 +4,7 @@
 	"id": "cornerstone-stageutility",
 	"name": "cornerstone-stageutility",
 	"shortname": "Stage Utility",
-	"description": "Control and monitor Cornerstone Stage Utility — PCO Services Live, view-to-screen routing, mic RF/battery telemetry and captions — over its HTTP/SSE API on the LAN.",
+	"description": "Control and monitor Stage Utility — PCO Services Live, view-to-screen routing, mic RF/battery telemetry and captions — over its HTTP/SSE API on the LAN.",
 	"version": "1.4.0-beta.2",
 	"license": "MIT",
 	"repository": "git+https://github.com/Cornerstone-Production/companion-module-cornerstone-stageutility.git",
@@ -12,7 +12,7 @@
 	"maintainers": [
 		{
 			"name": "Cornerstone Production",
-			"email": "hstreuber@cornerstonelife.com"
+			"email": "148175063+hstreub@users.noreply.github.com"
 		}
 	],
 	"runtime": {
@@ -22,7 +22,7 @@
 		"entrypoint": "../dist/main.js"
 	},
 	"legacyIds": [],
-	"manufacturer": "Cornerstone",
+	"manufacturer": "Stage Utility",
 	"products": ["Stage Utility"],
 	"keywords": ["pco", "planning center", "propresenter", "stage", "captions", "wireless", "rf", "sse"]
 }

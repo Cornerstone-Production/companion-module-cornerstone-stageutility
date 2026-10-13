@@ -14,7 +14,7 @@ running" with no config loaded.
 
 1. In Stage Utility, open **Settings → Integrations → Bitfocus Companion**. It
    shows the host or IP and the port to use; the default port is **8788**.
-2. In Companion, add a connection: **Cornerstone → Stage Utility**.
+2. In Companion, add a connection and search the list for **Stage Utility**.
 3. Enter the **Host / IP** and **Port** from step 1. Companion takes them
    separately and cannot resolve a DNS name, so use the IP shown there.
 4. The connection turns green once it reaches the server, and Stage Utility's
